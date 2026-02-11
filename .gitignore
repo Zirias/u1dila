@@ -1,0 +1,8 @@
+*.lbl
+*.map
+*.prg
+*.exe
+.*.swp
+*.tar.*
+*.d64
+obj/
