@@ -15,6 +15,10 @@
 driveno:	.byte	$9
 cdcmd:		.byte	":dc"
 cdcmdlen=	*-cdcmd
+mntcmd:		.byte	":tnuom"
+mntcmdlen=	*-mntcmd
+killcmd:	.byte	"0llik"
+killcmdlen=	*-killcmd
 
 .bss
 
@@ -231,20 +235,7 @@ rd_dirend:	jsr	KRNL_UNTLK
 		rts
 
 chdir:
-		ldx	#0
-		stx	$da
-		asl	a
-		rol	$da
-		asl	a
-		rol	$da
-		asl	a
-		rol	$da
-		asl	a
-		rol	$da
-		sta	cd_rdfn+1
-		lda	$da
-		adc	#>filenames
-		sta	cd_rdfn+2
+		jsr	setname
 		lda	#0
 		sta	$90
 		lda	driveno
@@ -260,21 +251,75 @@ cd_cmdloop:	lda	cdcmd,x
 		jsr	KRNL_CIOUT
 		dex
 		bpl	cd_cmdloop
-		inx
-cd_rdfn:	lda	$ffff,x
-		beq	cd_cmddone
-		jsr	KRNL_CIOUT
-		inx
-		cpx	#$10
-		bne	cd_rdfn
-cd_cmddone:	jsr	KRNL_UNLSN
+		jsr	sendname
 		jsr	KRNL_READST
 		bmi	cd_error
 		clc
 		rts
 
 mount:
+		jsr	setname
+		lda	#0
+		sta	$90
+		lda	driveno
+		jsr	KRNL_LISTEN
+		lda	#$6f
+		jsr	KRNL_SECOND
+		jsr	KRNL_READST
+		bpl	mnt_listened
+mnt_error:	sec
 		rts
+mnt_listened:	ldx	#mntcmdlen-1
+mnt_cmdloop:	lda	mntcmd,x
+		jsr	KRNL_CIOUT
+		dex
+		bpl	mnt_cmdloop
+		jsr	sendname
+		jsr	KRNL_READST
+		bmi	mnt_error
+		lda	driveno
+		jsr	KRNL_LISTEN
+		lda	#$6f
+		jsr	KRNL_SECOND
+		jsr	KRNL_READST
+		bmi	mnt_error
+		ldx	#killcmdlen-1
+mnt_killloop:	lda	killcmd,x
+		jsr	KRNL_CIOUT
+		dex
+		bpl	mnt_killloop
+		jsr	KRNL_UNLSN
+		jsr	KRNL_READST
+		bmi	mnt_error
+		clc
+		rts
+
+setname:
+		ldx	#0
+		stx	$da
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		sta	sn_rdfn+1
+		lda	$da
+		adc	#>filenames
+		sta	sn_rdfn+2
+		rts
+
+sendname:
+		ldx	#0
+sn_rdfn:	lda	$ffff,x
+		beq	sn_cmddone
+		jsr	KRNL_CIOUT
+		inx
+		cpx	#$10
+		bne	sn_rdfn
+sn_cmddone:	jmp	KRNL_UNLSN
 
 rdbyte:
 		jsr	KRNL_READST

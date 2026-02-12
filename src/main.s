@@ -32,6 +32,12 @@ hdrend:		.word	0
 readerrmsg:	.byte	$d, "error reading directory!", $d
 readerrlen=	* - readerrmsg
 
+cderrmsg:	.byte	$d, "error sending cd command!", $d
+cderrlen=	* - cderrmsg
+
+mnterrmsg:	.byte	$d, "error sending mount/kill!", $d
+mnterrlen=	* - mnterrmsg
+
 fakeldcmd:	.byte	12, 15, 1, 4, $22, "0:*", $22, ",8,1", 0
 fakerunkeys:	.byte	$d, "run", $d
 fakerunkeyslen=	*-fakerunkeys
@@ -154,10 +160,20 @@ rdtype:		lda	$ffff
 		bpl	notadir
 		lda	dirpos
 		jsr	chdir
-		jmp	mainloop
+		bcc	cdok
+		lda	#$93
+		jsr	KRNL_CHROUT
+		print	cderrmsg, cderrlen
+		rts
+cdok:		jmp	mainloop
 notadir:	lda	dirpos
 		jsr	mount
-		sei
+		bcc	mountok
+		lda	#$93
+		jsr	KRNL_CHROUT
+		print	mnterrmsg, mnterrlen
+		rts
+mountok:	sei
 		jsr	KRNL_RESETIO
 		jsr	KRNL_RESTOR
 		jsr	KRNL_CINT
