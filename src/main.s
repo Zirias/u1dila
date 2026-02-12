@@ -1,4 +1,5 @@
 .include "kernal.inc"
+.include "scrcode.inc"
 .include "sddrv.inc"
 
 CRSRROW=	$cd		; current row of the cursor
@@ -38,7 +39,10 @@ cderrlen=	* - cderrmsg
 mnterrmsg:	.byte	$d, "error sending mount/kill!", $d
 mnterrlen=	* - mnterrmsg
 
-fakeldcmd:	.byte	12, 15, 1, 4, $22, "0:*", $22, ",8,1", 0
+fakeldcmd:	.byte	12, 15, 1, 4, $22
+fakeldcmdlen=	*-fakeldcmd
+		.byte	"0:*", $22, ",8,1", 0
+fakeld9cmd:	.byte	$22, ",9,1", 0
 fakerunkeys:	.byte	$d, "run", $d
 fakerunkeyslen=	*-fakerunkeys
 
@@ -166,23 +170,53 @@ rdtype:		lda	$ffff
 		print	cderrmsg, cderrlen
 		rts
 cdok:		jmp	mainloop
-notadir:	lda	dirpos
+notadir:	lsr	a
+		bcs	diskimg
+		jsr	softreset
+		lda	#0
+		tax
+		tay
+		sta	$da
+		lda	dirpos
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		sta	prgrdnm+1
+		lda	$da
+		adc	#>filenames
+		sta	prgrdnm+2
+fakeld9loop1:	lda	fakeldcmd,y
+		sta	($d8),y
+		iny
+		cpy	#fakeldcmdlen
+		bne	fakeld9loop1
+prgrdnm:	lda	$ffff,x
+		beq	prgnmdone
+		jsr	scrcode
+		sta	($d8),y
+		iny
+		inx
+		bne	prgrdnm
+prgnmdone:	ldx	#0
+fakeld9loop2:	lda	fakeld9cmd,x
+		beq	fakecmddone
+		sta	($d8),y
+		iny
+		inx
+		bne	fakeld9loop2
+diskimg:	lda	dirpos
 		jsr	mount
 		bcc	mountok
 		lda	#$93
 		jsr	KRNL_CHROUT
 		print	mnterrmsg, mnterrlen
 		rts
-mountok:	sei
-		jsr	KRNL_RESETIO
-		jsr	KRNL_RESTOR
-		jsr	KRNL_CINT
-		jsr	STARTMSG
-		lda	CRSRROW
-		clc
-		adc	#2
-		sta	scrpos
-		jsr	calcscrvec
+mountok:	jsr	softreset
 		ldy	#0
 fakecmdloop:	lda	fakeldcmd,y
 		beq	fakecmddone
@@ -212,7 +246,23 @@ ib_invloop:	lda	($d8),y
 		bpl	ib_invloop
 nostop:		rts
 
-calcscrvec:	lda	#$c
+softreset:
+		sei
+		jsr	KRNL_RESETIO
+		jsr	KRNL_RESTOR
+		jsr	KRNL_CINT
+		tsx
+		stx	sr_fixstack+1
+		jsr	STARTMSG
+sr_fixstack:	ldx	#$ff
+		txs
+		lda	CRSRROW
+		clc
+		adc	#2
+		sta	scrpos
+
+calcscrvec:
+		lda	#$c
 		sta	$d9
 		lda	#0
 		sta	$da

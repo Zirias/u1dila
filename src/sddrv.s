@@ -170,8 +170,8 @@ rd_ftwrite:	sta	$ffff,y
 rd_scaneol:	tax
 		beq	rd_nextfile
 		jsr	rdbyte
-		bcs	rd_dirend
 		bcc	rd_scaneol
+		jmp	rd_dirend
 rd_nextfile:	lda	rd_ftwrite+1
 		sta	$d8
 		lda	rd_ftwrite+2
@@ -182,7 +182,7 @@ rd_nextfile:	lda	rd_ftwrite+1
 		iny
 		lda	($d8),y
 		cmp	#4
-		bne	rd_ftfdone
+		bne	rd_ftchkprg
 		iny
 		lda	($d8),y
 		cmp	#9
@@ -194,6 +194,20 @@ rd_nextfile:	lda	rd_ftwrite+1
 		cmp	#$34
 		bne	rd_ftfdone
 		lda	#1
+		ldy	#0
+		sta	($d8),y
+		beq	rd_ftfdone
+rd_ftchkprg:	cmp	#16
+		bne	rd_ftfdone
+		iny
+		lda	($d8),y
+		cmp	#18
+		bne	rd_ftfdone
+		iny
+		lda	($d8),y
+		cmp	#7
+		bne	rd_ftfdone
+		lda	#2
 		ldy	#0
 		sta	($d8),y
 		beq	rd_ftfdone
