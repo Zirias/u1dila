@@ -14,6 +14,8 @@ This tool offers a simple solution for a common usecase: Select and mount a
 d64 image, disable the control device, and autostart the mounted disk. It
 also offers directly launching "single-file" `.prg` programs.
 
+![u1dila screenshot](https://github.com/Zirias/u1dila/blob/res/screenshot.png?raw=true)
+
 To use it, configure your 1541-U1 to offer the emulated 1541 as drive number
 `#8` and the control device as drive number `#9`. It will then load the SD
 card directory on start and can be controlled with the keyboard:
