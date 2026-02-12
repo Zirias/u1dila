@@ -47,7 +47,7 @@ entry:
 		lda	#>nostop
 		sta	STOPVEC+1
 		cli
-		lda	#$93
+mainloop:	lda	#$93
 		jsr	KRNL_CHROUT
 		jsr	readdir
 		bcc	browse
@@ -74,6 +74,8 @@ waitkey:	jsr	KRNL_GETIN
 		beq	movedown
 		cmp	#$91
 		beq	moveup
+		cmp	#$d
+		beq	action
 		cmp	#3
 		beq	exit
 		bne	waitkey
@@ -126,7 +128,25 @@ barup:		jsr	calcscrvec
 		jsr	invbars
 		dec	dirpos
 		dec	scrpos
-		jmp	waitkey
+noaction:	jmp	waitkey
+action:		lda	#0
+		sta	$da
+		lda	dirpos
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		sta	rdtype+1
+		lda	$da
+		adc	#>filetypes
+		sta	rdtype+2
+rdtype:		lda	$ffff
+		beq	noaction
+		bpl	notadir
+		lda	dirpos
+		jsr	chdir
+		jmp	mainloop
+notadir:	jmp	waitkey
 
 invbars:	ldy	#25
 ib_invloop:	lda	($d8),y

@@ -2,6 +2,7 @@
 .include "scrcode.inc"
 
 .export readdir
+.export chdir
 .export driveno
 .export filenames
 .export filedisp
@@ -11,6 +12,8 @@
 .data
 
 driveno:	.byte	$9
+cdcmd:		.byte	":dc"
+cdcmdlen=	*-cdcmd
 
 .bss
 
@@ -143,7 +146,6 @@ rd_nmfilled:	jsr	rdbyte
 		rol	$d8
 		asl	a
 		rol	$d8
-		adc	#<filetypes
 		sta	rd_ftwrite+1
 		lda	$d8
 		adc	#>filetypes
@@ -224,6 +226,49 @@ rd_dirend:	jsr	KRNL_UNTLK
 		lda	#$e0
 		jsr	KRNL_SECOND
 		jsr	KRNL_UNLSN
+		clc
+		rts
+
+chdir:
+		ldx	#0
+		stx	$da
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		asl	a
+		rol	$da
+		sta	cd_rdfn+1
+		lda	$da
+		adc	#>filenames
+		sta	cd_rdfn+2
+		lda	#0
+		sta	$90
+		lda	driveno
+		jsr	KRNL_LISTEN
+		lda	#$6f
+		jsr	KRNL_SECOND
+		jsr	KRNL_READST
+		bpl	cd_listened
+cd_error:	sec
+		rts
+cd_listened:	ldx	#cdcmdlen-1
+cd_cmdloop:	lda	cdcmd,x
+		jsr	KRNL_CIOUT
+		dex
+		bpl	cd_cmdloop
+		inx
+cd_rdfn:	lda	$ffff,x
+		beq	cd_cmddone
+		jsr	KRNL_CIOUT
+		inx
+		cpx	#$10
+		bne	cd_rdfn
+cd_cmddone:	jsr	KRNL_UNLSN
+		jsr	KRNL_READST
+		bmi	cd_error
 		clc
 		rts
 
