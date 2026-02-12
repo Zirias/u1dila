@@ -20,5 +20,7 @@ KRNL_GETIN	= $ffe4
 KRNL_LOAD	= $ffd5
 KRNL_SAVE	= $ffd8
 KRNL_GETCHR	= $ffe4
+KRNL_CINT       = $ff81
 KRNL_RESETIO	= $ff84
+KRNL_RESTOR     = $ff8a
 KRNL_PLOT       = $fff0

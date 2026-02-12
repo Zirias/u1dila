@@ -3,6 +3,7 @@
 
 .export readdir
 .export chdir
+.export mount
 .export driveno
 .export filenames
 .export filedisp
@@ -270,6 +271,9 @@ cd_cmddone:	jsr	KRNL_UNLSN
 		jsr	KRNL_READST
 		bmi	cd_error
 		clc
+		rts
+
+mount:
 		rts
 
 rdbyte:

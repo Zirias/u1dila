@@ -1,8 +1,13 @@
 .include "kernal.inc"
 .include "sddrv.inc"
 
-STOPVEC = $326		; vector to STOP check routine
-LSTX	= $7f6		; currently pressed key
+CRSRROW=	$cd		; current row of the cursor
+KBBUFLEN=	$ef		; length of keyboard buffer
+STOPVEC=	$326		; vector to STOP check routine
+KBBUF=		$527		; keyboard buffer base
+LSTX=		$7f6		; currently pressed key
+STARTMSG=	$80c2		; start message
+BASICPROMPT=	$867e		; READY -> to BASIC
 
 .segment "BHDR"
 
@@ -26,6 +31,10 @@ hdrend:		.word	0
 
 readerrmsg:	.byte	$d, "error reading directory!", $d
 readerrlen=	* - readerrmsg
+
+fakeldcmd:	.byte	12, 15, 1, 4, $22, "0:*", $22, ",8,1", 0
+fakerunkeys:	.byte	$d, "run", $d
+fakerunkeyslen=	*-fakerunkeys
 
 .bss
 
@@ -146,7 +155,35 @@ rdtype:		lda	$ffff
 		lda	dirpos
 		jsr	chdir
 		jmp	mainloop
-notadir:	jmp	waitkey
+notadir:	lda	dirpos
+		jsr	mount
+		sei
+		jsr	KRNL_RESETIO
+		jsr	KRNL_RESTOR
+		jsr	KRNL_CINT
+		jsr	STARTMSG
+		lda	CRSRROW
+		clc
+		adc	#2
+		sta	scrpos
+		jsr	calcscrvec
+		ldy	#0
+fakecmdloop:	lda	fakeldcmd,y
+		beq	fakecmddone
+		sta	($d8),y
+		iny
+		bne	fakecmdloop
+fakecmddone:	ldx	#fakerunkeyslen
+		stx	KBBUFLEN
+		dex
+fakekeysloop:	lda	fakerunkeys,x
+		sta	KBBUF,x
+		dex
+		bpl	fakekeysloop
+		ldx	#$fb
+		txs
+		cli
+		jmp	BASICPROMPT
 
 invbars:	ldy	#25
 ib_invloop:	lda	($d8),y
