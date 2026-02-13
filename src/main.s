@@ -59,6 +59,16 @@ cs_col:		sta	$ff00,x
 cs_done:	rts
 
 entry:
+.if .defined(MACH_c128)
+		bit	$d7
+		bpl	start
+		lda	#27
+		jsr	KRNL_CHROUT
+		lda	#'x'
+		jsr	KRNL_CHROUT
+start:		lda	#$e
+		sta	$ff00
+.endif
 		sei
 		lda	STOPVEC
 		sta	origstop
@@ -73,7 +83,7 @@ mainloop:	jsr	clrscr
 		jsr	readdir
 		bcc	browse
 		print	readerrmsg, readerrlen
-exit:		lda	#$40
+exit:		lda	#NOKEY
 waitkbidle:	cmp	LSTX
 		bne	waitkbidle
 		sei
@@ -82,6 +92,10 @@ waitkbidle:	cmp	LSTX
 		lda	origstop+1
 		sta	STOPVEC+1
 		cli
+.if .defined(MACH_c128)
+		lda	#0
+		sta	$ff00
+.endif
 		jmp	clrscr
 browse:		lda	#0
 		sta	scrollpos
@@ -252,6 +266,10 @@ ib_invloop:	lda	(ZPS_0),y
 nostop:		rts
 
 softreset:
+.if .defined(MACH_c128)
+		lda	#0
+		sta	$ff00
+.endif
 		sei
 		jsr	KRNL_RESETIO
 		jsr	KRNL_RESTOR

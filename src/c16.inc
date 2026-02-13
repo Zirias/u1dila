@@ -5,6 +5,7 @@ CURCOL=		$53b		; current text color
 STOPVEC=	$326		; vector to STOP check routine
 KBBUF=		$527		; keyboard buffer base
 LSTX=		$7f6		; currently pressed key
+NOKEY=		$40		; flag for "no key pressed"
 SCREEN=		$c00		; start of text screen
 COLRAM=		$800		; Color RAM
 SCRROWS=	25		; number of text rows
