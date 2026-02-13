@@ -8,7 +8,7 @@ PLATFORM?=	c16
 
 MODULES=	bhdr main scrcode sddrv zpshared
 
-OBJS=		$(addprefix obj/,$(addsuffix .o,$(MODULES)))
+OBJS=		$(addprefix obj/$(PLATFORM)/,$(addsuffix .o,$(MODULES)))
 
 all:		$(TARGET).prg
 
@@ -19,10 +19,10 @@ clean:
 $(TARGET).prg:	$(OBJS) src/$(TARGET).cfg Makefile
 	$(LD65) -o$@ $(LD65FLAGS) $(OBJS)
 
-obj/%.o:	src/%.s src/$(TARGET).cfg Makefile | obj
+obj/$(PLATFORM)/%.o:	src/%.s src/$(TARGET).cfg Makefile | obj/$(PLATFORM)
 	$(CA65) $(CA65FLAGS) -o$@ $<
 
-obj:
-		mkdir obj
+obj/$(PLATFORM):
+		mkdir -p $@
 
 .PHONY:		all clean
