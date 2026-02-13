@@ -156,6 +156,7 @@ action:		lda	#0
 		rol	ZPS_2
 		asl	a
 		rol	ZPS_2
+		adc	#<filetypes
 		sta	rdtype+1
 		lda	ZPS_2
 		adc	#>filetypes
@@ -326,10 +327,18 @@ sd_maxok:	sta	ZPS_4
 		rol	ZPS_2
 		asl	a
 		rol	ZPS_2
+.if .defined (NODISPFN)
+		adc	#<filenames
+.else
 		adc	#<filedisp
+.endif
 		sta	sd_fnrd+1
 		lda	ZPS_2
+.if .defined (NODISPFN)
+		adc	#>filenames
+.else
 		adc	#>filedisp
+.endif
 		sta	sd_fnrd+2
 		lda	#0
 		sta	ZPS_2
@@ -385,6 +394,9 @@ sd_ftrd:	lda	$ffff,x
 .endif
 		ldx	#0
 sd_fnrd:	lda	$ffff,x
+.if .defined(NODISPFN)
+		jsr	scrcode
+.endif
 		ora	ZPS_3
 		sta	(ZPS_0),y
 		iny

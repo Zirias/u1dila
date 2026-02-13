@@ -8,7 +8,9 @@
 .export mount
 .export driveno
 .export filenames
+.if .not .defined(NODISPFN)
 .export filedisp
+.endif
 .export filetypes
 .export nfiles
 
@@ -26,12 +28,19 @@ killcmdlen=	*-killcmd
 
 nfiles:		.res	1
 
+.if .defined(VIC20_5K)
+MAXFILES=	102
+.else
+MAXFILES=	256
 .segment "ALBSS"
-
 .align $100
-filenames:	.res	$1000
-filedisp:	.res	$1000
-filetypes:	.res	$400
+.endif
+
+filenames:	.res	16 * MAXFILES
+.if .not .defined(NODISPFN)
+filedisp:	.res	16 * MAXFILES
+.endif
+filetypes:	.res	4 * MAXFILES
 
 .code
 
@@ -64,19 +73,25 @@ rd_titleloop:	jsr	rdbyte
 		lda	#0
 		ldy	#$1f
 rd_clrloop:	sta	filenames,y
+.if .not .defined(NODISPFN)
 		eor	#$20
 		sta	filedisp,y
 		eor	#$20
+.endif
 		dey
 		bpl	rd_clrloop
 		lda	#'/'
 		sta	filenames
+.if .not .defined(NODISPFN)
 		sta	filedisp
+.endif
 		lda	#'.'
 		sta	filenames+$10
 		sta	filenames+$11
+.if .not .defined(NODISPFN)
 		sta	filedisp+$10
 		sta	filedisp+$11
+.endif
 		lda	#$80
 		sta	filetypes
 		sta	filetypes+4
@@ -97,12 +112,14 @@ rd_clrloop:	sta	filenames,y
 		lda	#>(filenames+$20)
 		sta	rd_fnwrite1+2
 		sta	rd_fnwrite2+2
+.if .not .defined(NODISPFN)
 		lda	#<(filedisp+$20)
 		sta	rd_fdwrite1+1
 		sta	rd_fdwrite2+1
 		lda	#>(filedisp+$20)
 		sta	rd_fdwrite1+2
 		sta	rd_fdwrite2+2
+.endif
 rd_fileloop:	ldy	#4
 rd_entryloop:	jsr	rdbyte
 		bcc	*+5
@@ -120,8 +137,10 @@ rd_fnmloop:	jsr	rdbyte
 		cmp	#'"'
 		beq	rd_havenm
 rd_fnwrite1:	sta	$ffff,y
+.if .not .defined(NODISPFN)
 		jsr	scrcode
 rd_fdwrite1:	sta	$ffff,y
+.endif
 		iny
 		cpy	#$10
 		bne	rd_fnmloop
@@ -135,9 +154,11 @@ rd_havenm:	lda	#0
 rd_nmfill:	cpy	#$10
 		beq	rd_nmfilled
 rd_fnwrite2:	sta	$ffff,y
+.if .not .defined(NODISPFN)
 		eor	#$20
 rd_fdwrite2:	sta	$ffff,y
 		eor	#$20
+.endif
 		iny
 		bne	rd_nmfill
 rd_nmfilled:	jsr	rdbyte
@@ -153,6 +174,7 @@ rd_nmfilled:	jsr	rdbyte
 		rol	ZPS_0
 		asl	a
 		rol	ZPS_0
+		adc	#<filetypes
 		sta	rd_ftwrite+1
 		lda	ZPS_0
 		adc	#>filetypes
@@ -229,6 +251,7 @@ rd_ftfdone:	clc
 		adc	#0
 		sta	rd_fnwrite1+2
 		sta	rd_fnwrite2+2
+.if .not .defined(NODISPFN)
 		clc
 		lda	rd_fdwrite1+1
 		adc	#$10
@@ -238,7 +261,12 @@ rd_ftfdone:	clc
 		adc	#0
 		sta	rd_fdwrite1+2
 		sta	rd_fdwrite2+2
+.endif
 		inc	nfiles
+.if .defined(VIC20_5K)
+		lda	nfiles
+		cmp	#MAXFILES
+.endif
 		beq	rd_dirend
 		jmp	rd_fileloop
 rd_dirend:	jsr	KRNL_UNTLK
