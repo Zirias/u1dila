@@ -58,8 +58,8 @@ mainloop:	lda	#$93
 		bcc	browse
 		print	readerrmsg, readerrlen
 exit:		lda	#$40
-		cmp	LSTX
-		bne	*-3
+waitkbidle:	cmp	LSTX
+		bne	waitkbidle
 		sei
 		lda	origstop
 		sta	STOPVEC
