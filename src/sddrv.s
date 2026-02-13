@@ -1,5 +1,7 @@
 .include "kernal.inc"
+.include "platform.inc"
 .include "scrcode.inc"
+.include "zpshared.inc"
 
 .export readdir
 .export chdir
@@ -51,7 +53,7 @@ rd_listened:	lda	#'$'
 		lda	#$60
 		jsr	KRNL_TKSA
 		lda	#0
-		sta	$90
+		sta	IOSTATUS
 		ldy	#6
 rd_titleloop:	jsr	rdbyte
 		bcs	rd_error
@@ -145,14 +147,14 @@ rd_nmfilled:	jsr	rdbyte
 		beq	rd_nmfilled
 		tax
 		lda	#0
-		sta	$d8
+		sta	ZPS_0
 		lda	nfiles
 		asl	a
-		rol	$d8
+		rol	ZPS_0
 		asl	a
-		rol	$d8
+		rol	ZPS_0
 		sta	rd_ftwrite+1
-		lda	$d8
+		lda	ZPS_0
 		adc	#>filetypes
 		sta	rd_ftwrite+2
 		txa
@@ -173,51 +175,51 @@ rd_scaneol:	tax
 		bcc	rd_scaneol
 		jmp	rd_dirend
 rd_nextfile:	lda	rd_ftwrite+1
-		sta	$d8
+		sta	ZPS_0
 		lda	rd_ftwrite+2
-		sta	$d9
+		sta	ZPS_1
 		lda	#0
 		tay
-		sta	($d8),y
+		sta	(ZPS_0),y
 		iny
-		lda	($d8),y
+		lda	(ZPS_0),y
 		cmp	#4
 		bne	rd_ftchkprg
 		iny
-		lda	($d8),y
+		lda	(ZPS_0),y
 		cmp	#9
 		beq	rd_ftchkdir
 		cmp	#$36
 		bne	rd_ftfdone
 		iny
-		lda	($d8),y
+		lda	(ZPS_0),y
 		cmp	#$34
 		bne	rd_ftfdone
 		lda	#1
 		ldy	#0
-		sta	($d8),y
+		sta	(ZPS_0),y
 		beq	rd_ftfdone
 rd_ftchkprg:	cmp	#16
 		bne	rd_ftfdone
 		iny
-		lda	($d8),y
+		lda	(ZPS_0),y
 		cmp	#18
 		bne	rd_ftfdone
 		iny
-		lda	($d8),y
+		lda	(ZPS_0),y
 		cmp	#7
 		bne	rd_ftfdone
 		lda	#2
 		ldy	#0
-		sta	($d8),y
+		sta	(ZPS_0),y
 		beq	rd_ftfdone
 rd_ftchkdir:	iny
-		lda	($d8),y
+		lda	(ZPS_0),y
 		cmp	#18
 		bne	rd_ftfdone
 		lda	#$80
 		ldy	#0
-		sta	($d8),y
+		sta	(ZPS_0),y
 rd_ftfdone:	clc
 		lda	rd_fnwrite1+1
 		adc	#$10
@@ -251,7 +253,7 @@ rd_dirend:	jsr	KRNL_UNTLK
 chdir:
 		jsr	setname
 		lda	#0
-		sta	$90
+		sta	IOSTATUS
 		lda	driveno
 		jsr	KRNL_LISTEN
 		lda	#$6f
@@ -274,7 +276,7 @@ cd_cmdloop:	lda	cdcmd,x
 mount:
 		jsr	setname
 		lda	#0
-		sta	$90
+		sta	IOSTATUS
 		lda	driveno
 		jsr	KRNL_LISTEN
 		lda	#$6f
@@ -310,17 +312,17 @@ mnt_killloop:	lda	killcmd,x
 
 setname:
 		ldx	#0
-		stx	$da
+		stx	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		sta	sn_rdfn+1
-		lda	$da
+		lda	ZPS_2
 		adc	#>filenames
 		sta	sn_rdfn+2
 		rts

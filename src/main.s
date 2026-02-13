@@ -1,24 +1,10 @@
 .include "kernal.inc"
+.include "platform.inc"
 .include "scrcode.inc"
 .include "sddrv.inc"
+.include "zpshared.inc"
 
-CRSRROW=	$cd		; current row of the cursor
-KBBUFLEN=	$ef		; length of keyboard buffer
-STOPVEC=	$326		; vector to STOP check routine
-KBBUF=		$527		; keyboard buffer base
-LSTX=		$7f6		; currently pressed key
-STARTMSG=	$80c2		; start message
-BASICPROMPT=	$867e		; READY -> to BASIC
-
-.segment "BHDR"
-
-		.word	$1001
-		.word	hdrend
-		.word	2026
-		.byte	$9e, <((entry/1000) .mod 10)+$30
-		.byte	<((entry/100) .mod 10)+$30
-		.byte	<((entry/10) .mod 10)+$30, <(entry .mod 10)+$30, 0
-hdrend:		.word	0
+.export entry
 
 .macro print t, l
 		ldx	#(l ^ $ff) + 1
@@ -115,12 +101,12 @@ movedown:	ldx	dirpos
 		beq	waitkey
 bardown:	jsr	calcscrvec
 		clc
-		lda	$d8
+		lda	ZPS_0
 		adc	#40
-		sta	$da
-		lda	$d9
+		sta	ZPS_2
+		lda	ZPS_1
 		adc	#0
-		sta	$db
+		sta	ZPS_3
 		jsr	invbars
 		inc	dirpos
 		inc	scrpos
@@ -138,25 +124,25 @@ moveup:		lda	dirpos
 		beq	waitkey
 barup:		jsr	calcscrvec
 		sec
-		lda	$d8
+		lda	ZPS_0
 		sbc	#40
-		sta	$da
-		lda	$d9
+		sta	ZPS_2
+		lda	ZPS_1
 		sbc	#0
-		sta	$db
+		sta	ZPS_3
 		jsr	invbars
 		dec	dirpos
 		dec	scrpos
 noaction:	jmp	waitkey
 action:		lda	#0
-		sta	$da
+		sta	ZPS_2
 		lda	dirpos
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		sta	rdtype+1
-		lda	$da
+		lda	ZPS_2
 		adc	#>filetypes
 		sta	rdtype+2
 rdtype:		lda	$ffff
@@ -176,36 +162,36 @@ notadir:	lsr	a
 		lda	#0
 		tax
 		tay
-		sta	$da
+		sta	ZPS_2
 		lda	dirpos
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		sta	prgrdnm+1
-		lda	$da
+		lda	ZPS_2
 		adc	#>filenames
 		sta	prgrdnm+2
 fakeld9loop1:	lda	fakeldcmd,y
-		sta	($d8),y
+		sta	(ZPS_0),y
 		iny
 		cpy	#fakeldcmdlen
 		bne	fakeld9loop1
 prgrdnm:	lda	$ffff,x
 		beq	prgnmdone
 		jsr	scrcode
-		sta	($d8),y
+		sta	(ZPS_0),y
 		iny
 		inx
 		bne	prgrdnm
 prgnmdone:	ldx	#0
 fakeld9loop2:	lda	fakeld9cmd,x
 		beq	fakecmddone
-		sta	($d8),y
+		sta	(ZPS_0),y
 		iny
 		inx
 		bne	fakeld9loop2
@@ -220,7 +206,7 @@ mountok:	jsr	softreset
 		ldy	#0
 fakecmdloop:	lda	fakeldcmd,y
 		beq	fakecmddone
-		sta	($d8),y
+		sta	(ZPS_0),y
 		iny
 		bne	fakecmdloop
 fakecmddone:	ldx	#fakerunkeyslen
@@ -236,12 +222,12 @@ fakekeysloop:	lda	fakerunkeys,x
 		jmp	BASICPROMPT
 
 invbars:	ldy	#25
-ib_invloop:	lda	($d8),y
+ib_invloop:	lda	(ZPS_0),y
 		eor	#$80
-		sta	($d8),y
-		lda	($da),y
+		sta	(ZPS_0),y
+		lda	(ZPS_2),y
 		eor	#$80
-		sta	($da),y
+		sta	(ZPS_2),y
 		dey
 		bpl	ib_invloop
 nostop:		rts
@@ -262,112 +248,112 @@ sr_fixstack:	ldx	#$ff
 		sta	scrpos
 
 calcscrvec:
-		lda	#$c
-		sta	$d9
+		lda	#>SCREEN
+		sta	ZPS_1
 		lda	#0
-		sta	$da
+		sta	ZPS_2
 		lda	scrpos
 		asl	a
 		asl	a
 		asl	a
-		sta	$d8
-		rol	$da
+		sta	ZPS_0
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
-		adc	$d8
-		sta	$d8
-		lda	$da
-		adc	$d9
-		sta	$d9
+		rol	ZPS_2
+		adc	ZPS_0
+		sta	ZPS_0
+		lda	ZPS_2
+		adc	ZPS_1
+		sta	ZPS_1
 csv_ok:		rts
 
 showdir:	lda	#0
-		sta	$d8
-		sta	$da
-		lda	#$c
-		sta	$d9
+		sta	ZPS_0
+		sta	ZPS_2
+		lda	#>SCREEN
+		sta	ZPS_1
 		sec
 		lda	nfiles
 		sbc	scrollpos
 		cmp	#26
 		bcc	sd_maxok
 		lda	#25
-sd_maxok:	sta	$dc
+sd_maxok:	sta	ZPS_4
 		lda	scrollpos
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		adc	#<filedisp
 		sta	sd_fnrd+1
-		lda	$da
+		lda	ZPS_2
 		adc	#>filedisp
 		sta	sd_fnrd+2
 		lda	#0
-		sta	$da
+		sta	ZPS_2
 		lda	scrollpos
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		asl	a
-		rol	$da
+		rol	ZPS_2
 		adc	#<filetypes
 		sta	sd_ftrd+1
-		lda	$da
+		lda	ZPS_2
 		adc	#>filetypes
 		sta	sd_ftrd+2
 		ldy	#0
-		sty	$da
+		sty	ZPS_2
 sd_loop:	lda	#0
 		cpy	scrpos
 		bne	sd_norev
 		lda	#$80
-sd_norev:	sta	$db
+sd_norev:	sta	ZPS_3
 		ldy	#0
 		lda	#$20
-		ora	$db
-		sta	($d8),y
+		ora	ZPS_3
+		sta	(ZPS_0),y
 		iny
-		sta	($d8),y
+		sta	(ZPS_0),y
 		iny
 		lda	#'<'
-		ora	$db
-		sta	($d8),y
+		ora	ZPS_3
+		sta	(ZPS_0),y
 		iny
 		ldx	#1
 sd_ftrd:	lda	$ffff,x
-		ora	$db
-		sta	($d8),y
+		ora	ZPS_3
+		sta	(ZPS_0),y
 		iny
 		inx
 		cpx	#4
 		bne	sd_ftrd
 		lda	#'>'
-		ora	$db
-		sta	($d8),y
+		ora	ZPS_3
+		sta	(ZPS_0),y
 		iny
 		lda	#$20
-		ora	$db
-		sta	($d8),y
+		ora	ZPS_3
+		sta	(ZPS_0),y
 		iny
-		sta	($d8),y
+		sta	(ZPS_0),y
 		iny
 		ldx	#0
 sd_fnrd:	lda	$ffff,x
-		ora	$db
-		sta	($d8),y
+		ora	ZPS_3
+		sta	(ZPS_0),y
 		iny
 		inx
 		cpx	#$10
 		bne	sd_fnrd
 		lda	#$20
-		ora	$db
-		sta	($d8),y
+		ora	ZPS_3
+		sta	(ZPS_0),y
 		clc
 		lda	sd_ftrd+1
 		adc	#4
@@ -381,15 +367,15 @@ sd_ftptrok:	clc
 		bcc	sd_fnptrok
 		inc	sd_fnrd+2
 sd_fnptrok:	clc
-		lda	$d8
+		lda	ZPS_0
 		adc	#$28
-		sta	$d8
+		sta	ZPS_0
 		bcc	sd_scrptrok
-		inc	$d9
-sd_scrptrok:	ldy	$da
+		inc	ZPS_1
+sd_scrptrok:	ldy	ZPS_2
 		iny
-		cpy	$dc
+		cpy	ZPS_4
 		beq	sd_done
-		sty	$da
+		sty	ZPS_2
 		jmp	sd_loop
 sd_done:	rts
