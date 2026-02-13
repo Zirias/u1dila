@@ -104,14 +104,17 @@ browse:		lda	#0
 		jsr	showdir
 waitkey:	jsr	KRNL_GETIN
 		beq	waitkey
+		cmp	#3
+		beq	exit
 		cmp	#$11
 		beq	movedown
 		cmp	#$91
 		beq	moveup
+		sta	actionkey+1
 		cmp	#$d
 		beq	action
-		cmp	#3
-		beq	exit
+		cmp	#$85
+		beq	action
 		bne	waitkey
 movedown:	ldx	dirpos
 		inx
@@ -232,6 +235,9 @@ diskimg:	lda	dirpos
 		print	mnterrmsg, mnterrlen
 		rts
 mountok:	jsr	softreset
+actionkey:	lda	#$ff
+		cmp	#$d
+		bne	skipload
 		ldy	#0
 fakecmdloop:	lda	fakeldcmd,y
 		beq	fakecmddone
@@ -245,7 +251,7 @@ fakekeysloop:	lda	fakerunkeys,x
 		sta	KBBUF,x
 		dex
 		bpl	fakekeysloop
-		ldx	#$fb
+skipload:	ldx	#$fb
 		txs
 		cli
 		jmp	BASICPROMPT
