@@ -22,7 +22,7 @@ KRNL_SAVE	= $ffd8
 KRNL_GETCHR	= $ffe4
 KRNL_RESTOR     = $ff8a
 KRNL_PLOT       = $fff0
-.if .defined(MACH_vic20e) .or .defined(MACH_vic20)
+.if .defined(MACH_vic20e) .or .defined(MACH_vic20x) .or .defined(MACH_vic20)
 KRNL_CINT       = $e518
 KRNL_RESETIO    = $fdf9
 .else
