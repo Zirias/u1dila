@@ -41,6 +41,23 @@ origstop:	.res	2
 
 .code
 
+clrscr:
+		lda	#$93
+		jsr	KRNL_CHROUT
+clrcol:		lda	#>COLRAM
+		sta	cs_col+2
+		lda	CURCOL
+		ldx	#0
+		ldy	#SCRNPG
+cs_col:		sta	$ff00,x
+		inx
+		bne	cs_col
+		dey
+		beq	cs_done
+		inc	cs_col+2
+		bne	cs_col
+cs_done:	rts
+
 entry:
 		sei
 		lda	STOPVEC
@@ -52,8 +69,7 @@ entry:
 		lda	#>nostop
 		sta	STOPVEC+1
 		cli
-mainloop:	lda	#$93
-		jsr	KRNL_CHROUT
+mainloop:	jsr	clrscr
 		jsr	readdir
 		bcc	browse
 		print	readerrmsg, readerrlen
@@ -66,8 +82,7 @@ waitkbidle:	cmp	LSTX
 		lda	origstop+1
 		sta	STOPVEC+1
 		cli
-		lda	#$93
-		jmp	KRNL_CHROUT
+		jmp	clrscr
 browse:		lda	#0
 		sta	scrollpos
 		sta	dirpos
@@ -89,10 +104,10 @@ movedown:	ldx	dirpos
 		cpx	nfiles
 		beq	waitkey
 		lda	scrpos
-		cmp	#21
+		cmp	#SCRROWS-4
 		bcc	bardown
 		lda	scrollpos
-		adc	#24
+		adc	#SCRROWS-1
 		cmp	nfiles
 		beq	bardown
 		inc	scrollpos
@@ -102,7 +117,7 @@ movedown:	ldx	dirpos
 bardown:	jsr	calcscrvec
 		clc
 		lda	ZPS_0
-		adc	#40
+		adc	#SCRCOLS
 		sta	ZPS_2
 		lda	ZPS_1
 		adc	#0
@@ -125,7 +140,7 @@ moveup:		lda	dirpos
 barup:		jsr	calcscrvec
 		sec
 		lda	ZPS_0
-		sbc	#40
+		sbc	#SCRCOLS
 		sta	ZPS_2
 		lda	ZPS_1
 		sbc	#0
@@ -151,8 +166,7 @@ rdtype:		lda	$ffff
 		lda	dirpos
 		jsr	chdir
 		bcc	cdok
-		lda	#$93
-		jsr	KRNL_CHROUT
+		jsr	clrscr
 		print	cderrmsg, cderrlen
 		rts
 cdok:		jmp	mainloop
@@ -198,8 +212,7 @@ fakeld9loop2:	lda	fakeld9cmd,x
 diskimg:	lda	dirpos
 		jsr	mount
 		bcc	mountok
-		lda	#$93
-		jsr	KRNL_CHROUT
+		jsr	clrscr
 		print	mnterrmsg, mnterrlen
 		rts
 mountok:	jsr	softreset
@@ -221,7 +234,11 @@ fakekeysloop:	lda	fakerunkeys,x
 		cli
 		jmp	BASICPROMPT
 
+.if SCRCOLS > 25
 invbars:	ldy	#25
+.else
+invbars:	ldy	#SCRCOLS-1
+.endif
 ib_invloop:	lda	(ZPS_0),y
 		eor	#$80
 		sta	(ZPS_0),y
@@ -246,6 +263,7 @@ sr_fixstack:	ldx	#$ff
 		clc
 		adc	#2
 		sta	scrpos
+		jsr	clrcol
 
 calcscrvec:
 		lda	#>SCREEN
@@ -253,6 +271,7 @@ calcscrvec:
 		lda	#0
 		sta	ZPS_2
 		lda	scrpos
+.if SCRCOLS = 40
 		asl	a
 		asl	a
 		asl	a
@@ -264,10 +283,27 @@ calcscrvec:
 		rol	ZPS_2
 		adc	ZPS_0
 		sta	ZPS_0
+.elseif SCRCOLS = 22
+		asl	a
+		sta	ZPS_0
+		asl	a
+		tax
+		adc	ZPS_0
+		sta	ZPS_0
+		txa
+		asl	a
+		rol	ZPS_2
+		asl	a
+		rol	ZPS_2
+		adc	ZPS_0
+		sta	ZPS_0
+.else
+.error "Unsupported number of columns!"
+.endif
 		lda	ZPS_2
 		adc	ZPS_1
 		sta	ZPS_1
-csv_ok:		rts
+		rts
 
 showdir:	lda	#0
 		sta	ZPS_0
@@ -277,9 +313,9 @@ showdir:	lda	#0
 		sec
 		lda	nfiles
 		sbc	scrollpos
-		cmp	#26
+		cmp	#SCRROWS+1
 		bcc	sd_maxok
-		lda	#25
+		lda	#SCRROWS
 sd_maxok:	sta	ZPS_4
 		lda	scrollpos
 		asl	a
@@ -315,12 +351,14 @@ sd_loop:	lda	#0
 		lda	#$80
 sd_norev:	sta	ZPS_3
 		ldy	#0
+.if SCRCOLS > 25
 		lda	#$20
 		ora	ZPS_3
 		sta	(ZPS_0),y
 		iny
 		sta	(ZPS_0),y
 		iny
+.endif
 		lda	#'<'
 		ora	ZPS_3
 		sta	(ZPS_0),y
@@ -341,8 +379,10 @@ sd_ftrd:	lda	$ffff,x
 		ora	ZPS_3
 		sta	(ZPS_0),y
 		iny
+.if SCRCOLS > 25
 		sta	(ZPS_0),y
 		iny
+.endif
 		ldx	#0
 sd_fnrd:	lda	$ffff,x
 		ora	ZPS_3
@@ -351,9 +391,11 @@ sd_fnrd:	lda	$ffff,x
 		inx
 		cpx	#$10
 		bne	sd_fnrd
+.if SCRCOLS > 25
 		lda	#$20
 		ora	ZPS_3
 		sta	(ZPS_0),y
+.endif
 		clc
 		lda	sd_ftrd+1
 		adc	#4
@@ -368,7 +410,7 @@ sd_ftptrok:	clc
 		inc	sd_fnrd+2
 sd_fnptrok:	clc
 		lda	ZPS_0
-		adc	#$28
+		adc	#SCRCOLS
 		sta	ZPS_0
 		bcc	sd_scrptrok
 		inc	ZPS_1
