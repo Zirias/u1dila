@@ -96,7 +96,7 @@ waitkbidle:	cmp	LSTX
 		lda	#0
 		sta	$ff00
 .endif
-		jmp	clrscr
+		rts
 browse:		lda	#0
 		sta	scrollpos
 		sta	dirpos
@@ -105,8 +105,10 @@ browse:		lda	#0
 waitkey:	jsr	KRNL_GETIN
 		beq	waitkey
 		cmp	#3
+		bne	checkkey
+		jsr	clrscr
 		beq	exit
-		cmp	#$11
+checkkey:	cmp	#$11
 		beq	movedown
 		cmp	#$91
 		beq	moveup
@@ -186,7 +188,7 @@ rdtype:		lda	$ffff
 		bcc	cdok
 		jsr	clrscr
 		print	cderrmsg, cderrlen
-		rts
+		jmp	exit
 cdok:		jmp	mainloop
 notadir:	lsr	a
 		bcs	diskimg
@@ -233,7 +235,7 @@ diskimg:	lda	dirpos
 		bcc	mountok
 		jsr	clrscr
 		print	mnterrmsg, mnterrlen
-		rts
+		jmp	exit
 mountok:	jsr	softreset
 actionkey:	lda	#$ff
 		cmp	#$d
