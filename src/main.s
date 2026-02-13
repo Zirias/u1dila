@@ -341,9 +341,10 @@ showdir:	lda	#0
 		sec
 		lda	nfiles
 		sbc	scrollpos
+		beq	sd_defmax
 		cmp	#SCRROWS+1
 		bcc	sd_maxok
-		lda	#SCRROWS
+sd_defmax:	lda	#SCRROWS
 sd_maxok:	sta	ZPS_4
 		lda	scrollpos
 		asl	a
