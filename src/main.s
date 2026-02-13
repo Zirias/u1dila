@@ -187,6 +187,7 @@ notadir:	lsr	a
 		rol	ZPS_2
 		asl	a
 		rol	ZPS_2
+		adc	#<filenames
 		sta	prgrdnm+1
 		lda	ZPS_2
 		adc	#>filenames
