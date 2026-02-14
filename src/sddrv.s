@@ -347,8 +347,6 @@ sc_cmdloop:	lda	$ffff,x
 		rts
 
 setname:
-		ldx	#0
-		stx	ZPS_2
 		asl	a
 		rol	ZPS_2
 		asl	a
@@ -357,8 +355,11 @@ setname:
 		rol	ZPS_2
 		asl	a
 		rol	ZPS_2
+		clc
+		adc	#<filenames
 		sta	sn_rdfn+1
 		lda	ZPS_2
+		and	#$f
 		adc	#>filenames
 		sta	sn_rdfn+2
 		rts
