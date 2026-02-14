@@ -280,29 +280,40 @@ rd_dirend:	jsr	KRNL_UNTLK
 
 chdir:
 		jsr	setname
-		lda	#0
-		sta	IOSTATUS
-		lda	driveno
-		jsr	KRNL_LISTEN
-		lda	#$6f
-		jsr	KRNL_SECOND
-		jsr	KRNL_READST
-		bpl	cd_listened
-cd_error:	sec
-		rts
-cd_listened:	ldx	#cdcmdlen-1
-cd_cmdloop:	lda	cdcmd,x
-		jsr	KRNL_CIOUT
-		dex
-		bpl	cd_cmdloop
+		lda	#<cdcmd
+		ldx	#>cdcmd
+		ldy	#cdcmdlen-1
+		jsr	sendcmd
+		bcs	cd_done
 		jsr	sendname
 		jsr	KRNL_READST
-		bmi	cd_error
-		clc
-		rts
+		asl	a
+cd_done:	rts
 
 mount:
 		jsr	setname
+		lda	#<mntcmd
+		ldx	#>mntcmd
+		ldy	#mntcmdlen-1
+		jsr	sendcmd
+		bcs	mnt_done
+mnt_name:	jsr	sendname
+		jsr	KRNL_READST
+		asl	a
+		bcs	mnt_done
+		lda	#<killcmd
+		ldx	#>killcmd
+		ldy	#killcmdlen-1
+		jsr	sendcmd
+		jsr	KRNL_UNLSN
+		jsr	KRNL_READST
+		asl	a
+mnt_done:	rts
+
+sendcmd:
+		sta	sc_cmdloop+1
+		stx	sc_cmdloop+2
+		sty	sc_listened+1
 		lda	#0
 		sta	IOSTATUS
 		lda	driveno
@@ -310,31 +321,15 @@ mount:
 		lda	#$6f
 		jsr	KRNL_SECOND
 		jsr	KRNL_READST
-		bpl	mnt_listened
-mnt_error:	sec
-		rts
-mnt_listened:	ldx	#mntcmdlen-1
-mnt_cmdloop:	lda	mntcmd,x
-		jsr	KRNL_CIOUT
-		dex
-		bpl	mnt_cmdloop
-		jsr	sendname
-		jsr	KRNL_READST
-		bmi	mnt_error
-		lda	driveno
-		jsr	KRNL_LISTEN
-		lda	#$6f
-		jsr	KRNL_SECOND
-		jsr	KRNL_READST
-		bmi	mnt_error
-		ldx	#killcmdlen-1
-mnt_killloop:	lda	killcmd,x
-		jsr	KRNL_CIOUT
-		dex
-		bpl	mnt_killloop
+		bpl	sc_listened
 		jsr	KRNL_UNLSN
-		jsr	KRNL_READST
-		bmi	mnt_error
+sc_error:	sec
+		rts
+sc_listened:	ldx	#$ff
+sc_cmdloop:	lda	$ffff,x
+		jsr	KRNL_CIOUT
+		dex
+		bpl	sc_cmdloop
 		clc
 		rts
 
@@ -366,11 +361,10 @@ sn_rdfn:	lda	$ffff,x
 sn_cmddone:	jmp	KRNL_UNLSN
 
 rdbyte:
-		jsr	KRNL_READST
-		asl	a
-		bcs	rb_out
-		asl	a
-		bcs	rb_out
+		sec
+		bit	IOSTATUS
+		bmi	rb_out
+		bvs	rb_out
 		jsr	KRNL_ACPTR
 		clc
 rb_out:		rts
