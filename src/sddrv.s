@@ -4,6 +4,7 @@
 .include "zpshared.inc"
 
 .export readdir
+.export init
 .export chdir
 .export mount
 .export driveno
@@ -23,6 +24,8 @@ mntcmd:		.byte	":tnuom"
 mntcmdlen=	*-mntcmd
 killcmd:	.byte	"0llik"
 killcmdlen=	*-killcmd
+initcmd:	.byte	"0tini"
+initcmdlen=	*-initcmd
 
 .bss
 
@@ -93,7 +96,6 @@ rd_clrloop:	sta	filenames,y
 		sta	filedisp+$11
 .endif
 		lda	#$80
-		sta	filetypes
 		sta	filetypes+4
 		lda	#4
 		sta	filetypes+1
@@ -277,6 +279,17 @@ rd_dirend:	jsr	KRNL_UNTLK
 		jsr	KRNL_UNLSN
 		clc
 		rts
+
+init:
+		lda	#<initcmd
+		ldx	#>initcmd
+		ldy	#initcmdlen-1
+		jsr	sendcmd
+		bcs	init_done
+		jsr	KRNL_UNLSN
+		jsr	KRNL_READST
+		asl	a
+init_done:	rts
 
 chdir:
 		jsr	setname

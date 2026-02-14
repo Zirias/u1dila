@@ -1,4 +1,5 @@
 .import readdir
+.import init
 .import chdir
 .import mount
 .import driveno

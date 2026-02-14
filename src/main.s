@@ -171,7 +171,11 @@ noaction:	jmp	waitkey
 action:		lda	#0
 		sta	ZPS_2
 		lda	dirpos
-		asl	a
+		bne	chktype
+		jsr	init
+		bcs	cderror
+		bcc	cdok
+chktype:	asl	a
 		rol	ZPS_2
 		asl	a
 		rol	ZPS_2
@@ -186,7 +190,7 @@ rdtype:		lda	$ffff
 		lda	dirpos
 		jsr	chdir
 		bcc	cdok
-		jsr	clrscr
+cderror:	jsr	clrscr
 		print	cderrmsg, cderrlen
 		jmp	exit
 cdok:		jmp	mainloop
@@ -341,7 +345,9 @@ showdir:	lda	#0
 		sec
 		lda	nfiles
 		sbc	scrollpos
+.if .not .defined(VIC20_5K)
 		beq	sd_defmax
+.endif
 		cmp	#SCRROWS+1
 		bcc	sd_maxok
 sd_defmax:	lda	#SCRROWS
