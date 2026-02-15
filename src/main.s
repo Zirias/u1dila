@@ -278,6 +278,13 @@ fakecmdloop:	lda	fakeldcmd,y
 fakecmddone:	ldx	#fakerunkeyslen
 		stx	KBBUFLEN
 		dex
+.if .defined(MACH_vic20) .or .defined(MACH_vic20e) .or .defined(MACH_vic20x)
+		cpy	#SCRCOLS
+		bcc	fakekeysloop
+		lda	ZPS_1
+		ldy	scrpos
+		sta	$da,y
+.endif
 fakekeysloop:	lda	fakerunkeys,x
 		sta	KBBUF,x
 		dex
