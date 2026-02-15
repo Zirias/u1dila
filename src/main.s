@@ -287,10 +287,11 @@ skipload:	ldx	#$fb
 		cli
 		jmp	BASICPROMPT
 
+invbars:
 .if SCRCOLS > 25
-invbars:	ldy	#25
+		ldy	#25
 .else
-invbars:	ldy	#SCRCOLS-1
+		ldy	#SCRCOLS-1
 .endif
 ib_invloop:	lda	(ZPS_0),y
 		eor	#$80
