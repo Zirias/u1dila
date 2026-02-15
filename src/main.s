@@ -39,6 +39,18 @@ dirpos:		.res	1
 scrpos:		.res	1
 origstop:	.res	2
 
+.if .defined(MACH_c16)
+FKEYS=		8
+KEYDEFS=	$55f
+KEYCODES=	$dc41
+fkeysave:	.res	2*FKEYS
+.elseif .defined(MACH_c128)
+FKEYS=		10
+KEYDEFS=	$1000
+KEYCODES=	$c6dd
+fkeysave:	.res	2*FKEYS
+.endif
+
 .code
 
 clrscr:
@@ -59,6 +71,24 @@ cs_col:		sta	$ff00,x
 cs_done:	rts
 
 entry:
+		sei
+.if .defined(MACH_c16) .or .defined(MACH_c128)
+		ldx	#(2*FKEYS)-1
+savefkeys:	lda	KEYDEFS,x
+		sta	fkeysave,x
+		dex
+		bpl	savefkeys
+		lda	#1
+		ldx	#FKEYS-1
+fakeflen:	sta	KEYDEFS,x
+		dex
+		bpl	fakeflen
+		ldx	#FKEYS-1
+fakefcodes:	lda	KEYCODES,x
+		sta	KEYDEFS+FKEYS,x
+		dex
+		bpl	fakefcodes
+.endif
 .if .defined(MACH_c128)
 		bit	$d7
 		bpl	start
@@ -69,7 +99,6 @@ entry:
 start:		lda	#$e
 		sta	$ff00
 .endif
-		sei
 		lda	STOPVEC
 		sta	origstop
 		lda	STOPVEC+1
@@ -91,11 +120,18 @@ waitkbidle:	cmp	LSTX
 		sta	STOPVEC
 		lda	origstop+1
 		sta	STOPVEC+1
-		cli
+.if .defined(MACH_c16) .or .defined(MACH_c128)
+		ldx	#(2*FKEYS)-1
+restfkeys:	lda	fkeysave,x
+		sta	KEYDEFS,x
+		dex
+		bpl	restfkeys
+.endif
 .if .defined(MACH_c128)
 		lda	#0
 		sta	$ff00
 .endif
+		cli
 		rts
 browse:		lda	#0
 		sta	scrollpos
