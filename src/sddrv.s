@@ -7,6 +7,7 @@
 .export init
 .export chdir
 .export mount
+.export fnoffset
 .export driveno
 .export filenames
 .if .not .defined(NODISPFN)
@@ -346,20 +347,24 @@ sc_cmdloop:	lda	$ffff,x
 		clc
 		rts
 
+fnoffset:
+		ldx	#0
+		stx	ZPS_2
+		asl	a
+		rol	ZPS_2
+		asl	a
+		rol	ZPS_2
+		asl	a
+		rol	ZPS_2
+		asl	a
+		rol	ZPS_2
+		rts
+
 setname:
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
-		clc
+		jsr	fnoffset
 		adc	#<filenames
 		sta	sn_rdfn+1
 		lda	ZPS_2
-		and	#$f
 		adc	#>filenames
 		sta	sn_rdfn+2
 		rts

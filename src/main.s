@@ -64,9 +64,8 @@ clrcol:		lda	#>COLRAM
 cs_col:		sta	$ff00,x
 		inx
 		bne	cs_col
-		dey
-		beq	cs_done
 		inc	cs_col+2
+		dey
 		bne	cs_col
 cs_done:	rts
 
@@ -170,7 +169,6 @@ movedown:	ldx	dirpos
 		jsr	showdir
 		beq	waitkey
 bardown:	jsr	calcscrvec
-		clc
 		lda	ZPS_0
 		adc	#SCRCOLS
 		sta	ZPS_2
@@ -193,9 +191,8 @@ moveup:		lda	dirpos
 		jsr	showdir
 		beq	waitkey
 barup:		jsr	calcscrvec
-		sec
 		lda	ZPS_0
-		sbc	#SCRCOLS
+		sbc	#SCRCOLS-1
 		sta	ZPS_2
 		lda	ZPS_1
 		sbc	#0
@@ -233,24 +230,14 @@ cdok:		jmp	mainloop
 notadir:	lsr	a
 		bcs	diskimg
 		jsr	softreset
-		lda	#0
-		tax
-		tay
-		sta	ZPS_2
 		lda	dirpos
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
+		jsr	fnoffset
 		adc	#<filenames
 		sta	prgrdnm+1
 		lda	ZPS_2
 		adc	#>filenames
 		sta	prgrdnm+2
+		ldy	#0
 fakeld9loop1:	lda	fakeldcmd,y
 		sta	(ZPS_0),y
 		iny
@@ -389,14 +376,7 @@ showdir:	lda	#0
 sd_defmax:	lda	#SCRROWS
 sd_maxok:	sta	ZPS_4
 		lda	scrollpos
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
+		jsr	fnoffset
 .if .defined (NODISPFN)
 		adc	#<filenames
 .else

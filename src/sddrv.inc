@@ -2,6 +2,7 @@
 .import init
 .import chdir
 .import mount
+.import fnoffset
 .import driveno
 .import filenames
 .import filedisp
