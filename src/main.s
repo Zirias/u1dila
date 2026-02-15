@@ -249,6 +249,8 @@ prgrdnm:	lda	$ffff,x
 		sta	(ZPS_0),y
 		iny
 		inx
+		cpx	#$10
+		beq	prgnmdone
 		bne	prgrdnm
 prgnmdone:	ldx	#0
 fakeld9loop2:	lda	fakeld9cmd,x
