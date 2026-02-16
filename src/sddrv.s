@@ -55,7 +55,7 @@ readdir:
 		jsr	KRNL_LISTEN	; listen, drive!
 		lda	#$f0		; open ($f) channel 0 ($0)
 		jsr	KRNL_SECOND
-		jsr	KRNL_READST	; check bus status
+		bit	IOSTATUS	; check bus status
 		bpl	rd_listened
 rd_error:	sec			; on error, set carry and exit
 		rts
@@ -124,6 +124,10 @@ rd_clrloop:	sta	filenames,y	; everything worked, so
 		sta	rd_fdwrite1+2
 		sta	rd_fdwrite2+2
 .endif
+		lda	#<(filetypes+8)
+		sta	ZPS_0
+		lda	#>(filetypes+8)
+		sta	ZPS_1
 rd_fileloop:	ldy	#4		; for every line, ignore 4 bytes:
 rd_entryloop:	jsr	rdbyte		; BASIC line pointer and number
 		bcc	*+5		; and handle timeout/EOI ...
@@ -170,25 +174,11 @@ rd_nmfilled:	jsr	rdbyte		; keep reading to find type
 		jmp	rd_dirend
 		cmp	#$20		; space? not the type yet
 		beq	rd_nmfilled
-		tax			; save type character to X
-		lda	#0		; calculate pointer into
-		sta	ZPS_0		; filetypes array
-		lda	nfiles
-		asl	a
-		rol	ZPS_0
-		asl	a
-		rol	ZPS_0
-		adc	#<filetypes
-		sta	rd_ftwrite+1
-		lda	ZPS_0
-		adc	#>filetypes
-		sta	rd_ftwrite+2
-		txa			; restore type character from X
 		ldy	#1		; index to store type characters
 rd_typeloop:	tax			; copy to X just for testing
 		beq	rd_fileloop	; NUL: end of current line
 		jsr	scrcode		; otherwise convert to screen code
-rd_ftwrite:	sta	$ffff,y		; and store
+rd_ftwrite:	sta	(ZPS_0),y	; and store
 		jsr	rdbyte		; read next character
 		bcc	*+5
 		jmp	rd_dirend
@@ -200,11 +190,7 @@ rd_scaneol:	tax			; copy to X just for testing
 		jsr	rdbyte		; keep reading/ignoring until EOL
 		bcc	rd_scaneol
 		jmp	rd_dirend
-rd_nextfile:	lda	rd_ftwrite+1	; copy filetype pointer to ZP
-		sta	ZPS_0
-		lda	rd_ftwrite+2
-		sta	ZPS_1
-		lda	#0		; initialize filetype flags to 0
+rd_nextfile:	lda	#0		; initialize filetype flags to 0
 		tay
 		sta	(ZPS_0),y
 		iny
@@ -266,7 +252,12 @@ rd_ftfdone:	clc
 		sta	rd_fdwrite1+2
 		sta	rd_fdwrite2+2
 .endif
-		inc	nfiles		; increment number if files
+		lda	ZPS_0
+		adc	#4
+		sta	ZPS_0
+		bcc	rd_ftsamepg
+		inc	ZPS_1
+rd_ftsamepg:	inc	nfiles		; increment number if files
 .if .defined(VIC20_5K)
 		lda	nfiles
 		cmp	#MAXFILES	; check for max
@@ -290,8 +281,7 @@ init:
 		jsr	sendcmd
 		bcs	init_done	; error sending command?
 		jsr	KRNL_UNLSN
-		jsr	KRNL_READST
-		asl	a		; move possible timeout to carry
+		asl	IOSTATUS	; move possible timeout to carry
 init_done:	rts
 
 ; Send the cd:xxxx command
@@ -303,8 +293,7 @@ chdir:
 		jsr	sendcmd		; send command prefix "cd:"
 		bcs	cd_done		; error?
 		jsr	sendname	; send the name (also doing UNLSN)
-		jsr	KRNL_READST
-		asl	a		; move possible timeout to carry
+		asl	IOSTATUS	; move possible timeout to carry
 cd_done:	rts
 
 ; Send the mount:xxxx command, followed by kill0
@@ -316,16 +305,14 @@ mount:
 		jsr	sendcmd		; send command prefix "mount:"
 		bcs	mnt_done	; error?
 		jsr	sendname	; send the name (also doing UNLSN)
-		jsr	KRNL_READST
-		asl	a		; move possible timeout to carry
+		asl	IOSTATUS	; move possible timeout to carry
 		bcs	mnt_done	; error?
 		lda	#<killcmd
 		ldx	#>killcmd
 		ldy	#killcmdlen-1
 		jsr	sendcmd		; send "kill0" command
 		jsr	KRNL_UNLSN
-		jsr	KRNL_READST
-		asl	a		; move possible timeout to carry
+		asl	IOSTATUS	; move possible timeout to carry
 mnt_done:	rts
 
 ; Send a given command to the drive:
@@ -341,7 +328,7 @@ sendcmd:
 		jsr	KRNL_LISTEN	; listen, drive!
 		lda	#$6f		; ... on channel #15
 		jsr	KRNL_SECOND
-		jsr	KRNL_READST
+		bit	IOSTATUS
 		bpl	sc_listened	; error listening?
 		jsr	KRNL_UNLSN
 sc_error:	sec			; then set carry to indicate the error
