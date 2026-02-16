@@ -58,15 +58,15 @@ readdir:
 		asl	IOSTATUS	; check bus status
 		bcc	rd_listened
 rd_error:	rts			; on error, exit with carry set
-rd_listened:	lda	#'$'		; request file "$"
+rd_listened:	lda	#0		; reset bus status
+		sta	IOSTATUS
+		lda	#'$'		; request file "$"
 		jsr	KRNL_CIOUT
 		jsr	KRNL_UNLSN	; stop listening
 		lda	driveno
 		jsr	KRNL_TALK	; now, please talk ... ;)
 		lda	#$60		; ... on channel 0
 		jsr	KRNL_TKSA
-		lda	#0		; reset bus status just in case
-		sta	IOSTATUS
 		ldy	#6		; skip 6 bytes (ldaddr, BASIC ptr/line)
 rd_titleloop:	jsr	rdbyte		; read a byte
 		bcs	rd_error	; carry means error
