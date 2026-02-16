@@ -32,8 +32,8 @@ cderrlen=	* - cderrmsg
 mnterrmsg:	.byte	$d, "error sending", SPC_OR_NL, "mount/kill!", $d
 mnterrlen=	* - mnterrmsg
 
-fakeldcmd:	.byte	12, 15, 1, 4, $22, "0:*"	; LOAD"0:*
-fakeldcmdlen=	*-3-fakeldcmd
+fakeldcmd:	.byte	12, 15, 1, 4, $22, "0:*", 0	; LOAD"0:*
+fakeldcmdlen=	*-4-fakeldcmd
 fakerunkeys:	.byte	$d, "run", $d
 fakerunkeyslen=	*-fakerunkeys
 drvnop1:	.byte	"8911"
