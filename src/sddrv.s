@@ -8,7 +8,6 @@
 .export chdir
 .export mount
 .export fnoffset
-.export driveno
 .export filenames
 .if .not .defined(NODISPFN)
 .export filedisp
@@ -18,7 +17,6 @@
 
 .data
 
-driveno:	.byte	$9		; default drive no #9
 cdcmd:		.byte	":dc"		; 1541-U command "cd:"
 cdcmdlen=	*-cdcmd
 mntcmd:		.byte	":tnuom"	; 1541-U command "mount:"
@@ -51,7 +49,7 @@ filetypes:	.res	4 * MAXFILES	; types, 1 flags byte, 3 screen code
 ; Read current directory by requesting the "pseudo-BASIC" file "$" from the
 ; drive and parsing the result on the fly
 readdir:
-		lda	driveno
+		lda	CURDEV
 		jsr	KRNL_LISTEN	; listen, drive!
 		lda	#$f0		; open ($f) channel 0 ($0)
 		jsr	KRNL_SECOND
@@ -63,7 +61,7 @@ rd_listened:	lda	#0		; reset bus status
 		lda	#'$'		; request file "$"
 		jsr	KRNL_CIOUT
 		jsr	KRNL_UNLSN	; stop listening
-		lda	driveno
+		lda	CURDEV
 		jsr	KRNL_TALK	; now, please talk ... ;)
 		lda	#$60		; ... on channel 0
 		jsr	KRNL_TKSA
@@ -266,7 +264,7 @@ rd_ftsamepg:	inc	nfiles		; increment number if files
 		beq	rd_dirend	; max reached -> stop reading $
 		jmp	rd_fileloop	; read next entry
 rd_dirend:	jsr	KRNL_UNTLK	; drive, stop talking!
-		lda	driveno
+		lda	CURDEV
 		jsr	KRNL_LISTEN	; and listen now...
 		lda	#$e0		; close ($e) channel 0 ($0).
 		jsr	KRNL_SECOND
@@ -325,7 +323,7 @@ sendcmd:
 		sty	sc_listened+1	; save starting index for sending
 		lda	#0		; reset bus status just in case
 		sta	IOSTATUS
-		lda	driveno
+		lda	CURDEV
 		jsr	KRNL_LISTEN	; listen, drive!
 		lda	#$6f		; ... on channel #15
 		jsr	KRNL_SECOND

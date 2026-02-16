@@ -1,6 +1,7 @@
 IOSTATUS=	$90		; current I/O status byte
 CRSRROW=	$eb		; current row of the cursor
 KBBUFLEN=	$d0		; length of keyboard buffer
+CURDEV=		$ba		; current device number
 CURCOL=		$f1		; current text color
 STOPVEC=	$328		; vector to STOP check routine
 KBBUF=		$34a		; keyboard buffer base

@@ -32,12 +32,12 @@ cderrlen=	* - cderrmsg
 mnterrmsg:	.byte	$d, "error sending", SPC_OR_NL, "mount/kill!", $d
 mnterrlen=	* - mnterrmsg
 
-fakeldcmd:	.byte	12, 15, 1, 4, $22	; LOAD"
-fakeldcmdlen=	*-fakeldcmd
-		.byte	"0:*", $22, ",8,1", 0	; 0:*",8,1<NUL>
-fakeld9cmd:	.byte	$22, ",9,1", 0		; ",9,1<NUL>
+fakeldcmd:	.byte	12, 15, 1, 4, $22, "0:*"	; LOAD"0:*
+fakeldcmdlen=	*-3-fakeldcmd
 fakerunkeys:	.byte	$d, "run", $d
 fakerunkeyslen=	*-fakerunkeys
+drvnop1:	.byte	"8911"
+drvnop2:	.byte	"01"
 
 .bss
 
@@ -79,6 +79,42 @@ cs_col:		sta	$ff00,x
 		dey
 		bne	cs_col
 cs_done:	rts
+
+; write trailing part of fake load command with the drive number from A
+writedrvno:
+		and	#7		; mask low bits
+		tax
+		lda	#'"'		; print "
+		sta	(ZPS_0),y
+		iny
+		lda	#','		; print ,
+		sta	(ZPS_0),y
+		iny
+		lda	drvnop1,x	; load first digit
+		sta	(ZPS_0),y	; and print
+		iny
+		dex
+		dex
+		bmi	wdn_ok		; drive no >= 10?
+		lda	drvnop2,x	; load second digit
+		sta	(ZPS_0),y	; and print
+		iny
+wdn_ok:		lda	#','		; print ,
+		sta	(ZPS_0),y
+		iny
+		lda	#'1'		; print 1
+		sta	(ZPS_0),y
+		iny
+		rts
+
+ftoffset:
+		ldx	#0
+		stx	ZPS_2
+		asl	a		; calculate filetype offset from
+		rol	ZPS_2		; dir position
+		asl	a
+		rol	ZPS_2
+		rts
 
 ; Main entry point, the BASIC header SYS command jumps here
 entry:
@@ -143,7 +179,7 @@ restfkeys:	lda	fkeysave,x	; mappings on c16 and c128
 		sta	$ff00
 .endif
 		cli			; exit sequence done
-		rts
+nostop:		rts
 browse:		lda	#0		; initialize browser variables
 		sta	scrollpos
 		sta	dirpos
@@ -159,7 +195,7 @@ checkkey:	cmp	#$11		; cursor down?
 		beq	movedown
 		cmp	#$91		; cursor up?
 		beq	moveup
-		sta	actionkey+1	; save key for later check on action
+		sta	ZPS_4		; save key for later check on action
 		cmp	#$d		; RETURN?
 		beq	action
 		cmp	#$85		; F1?
@@ -178,8 +214,7 @@ movedown:	ldx	dirpos		; load current dir position
 		beq	bardown		; then also move the bar
 		inc	scrollpos	; otherwise scroll one down
 		inc	dirpos		; adjust dir position
-		jsr	showdir		; and re-render directory
-		beq	waitkey		; back to waiting for key
+		bne	doscroll	; to common scroll code
 bardown:	jsr	calcscrvec	; get pointer to current screen row
 		lda	ZPS_0		; and calculate pointer to next
 		adc	#SCRCOLS	; screen row
@@ -187,10 +222,9 @@ bardown:	jsr	calcscrvec	; get pointer to current screen row
 		lda	ZPS_1
 		adc	#0
 		sta	ZPS_3
-		jsr	invbars		; invert both rows to move the bar
 		inc	dirpos		; adjust dir and
 		inc	scrpos		; screen position
-		bne	waitkey		; back to waiting for key
+		bne	doinv		; to common move bar
 moveup:		lda	dirpos		; load current dir position
 		beq	waitkey		; first entry? -> ignore moving up
 		lda	scrpos		; load current screen position
@@ -200,8 +234,8 @@ moveup:		lda	dirpos		; load current dir position
 		beq	barup		; scrolled to top? -> just move bar
 		dec	scrollpos	; otherwise scroll up
 		dec	dirpos		; adjust dir position
-		jsr	showdir		; and re-render directory
-		beq	waitkey		; back to waiting for key
+doscroll:	jsr	showdir		; and re-render directory
+noaction:	beq	waitkey		; back to waiting for key
 barup:		jsr	calcscrvec	; get pointer to current screen row
 		lda	ZPS_0		; and calculate pointer to previous
 		sbc	#SCRCOLS-1	; screen row
@@ -209,21 +243,15 @@ barup:		jsr	calcscrvec	; get pointer to current screen row
 		lda	ZPS_1
 		sbc	#0
 		sta	ZPS_3
-		jsr	invbars		; invert both rows to move the bar
 		dec	dirpos		; adjust dir and
 		dec	scrpos		; screen position
-noaction:	jmp	waitkey		; back to waiting for key
-action:		lda	#0		; first initialize filetype offset
-		sta	ZPS_2		; hi-byte in ZPS2
-		lda	dirpos		; load dir position
+doinv:		jmp	invbars
+action:		lda	dirpos		; load dir position
 		bne	chktype		; not first -> continue
 		jsr	init		; special-case for first entry
 		bcs	cderror		; handle command failed and
 		bcc	cdok		; command success
-chktype:	asl	a		; calculate filetype offset from
-		rol	ZPS_2		; dir position
-		asl	a
-		rol	ZPS_2
+chktype:	jsr	ftoffset	; calculate filetype offset from
 		adc	#<filetypes	; add filetype base address
 		sta	rdtype+1
 		lda	ZPS_2
@@ -250,11 +278,11 @@ notadir:	lsr	a		; #$01 is D64 image
 		adc	#>filenames
 		sta	prgrdnm+2
 		ldy	#0
-fakeld9loop1:	lda	fakeldcmd,y	; write a fake LOAD cmd to screen
+fakeldsloop1:	lda	fakeldcmd,y	; write a fake LOAD cmd to screen
 		sta	(ZPS_0),y
 		iny
 		cpy	#fakeldcmdlen
-		bne	fakeld9loop1
+		bne	fakeldsloop1
 prgrdnm:	lda	$ffff,x		; write selected file name to screen
 		beq	prgnmdone
 		jsr	scrcode
@@ -262,15 +290,9 @@ prgrdnm:	lda	$ffff,x		; write selected file name to screen
 		iny
 		inx
 		cpx	#$10		; check max filename length
-		beq	prgnmdone
 		bne	prgrdnm
-prgnmdone:	ldx	#0
-fakeld9loop2:	lda	fakeld9cmd,x	; write fake ",9,1 to screen
-		beq	fakecmddone	; skip disk image stuff when done
-		sta	(ZPS_0),y
-		iny
-		inx
-		bne	fakeld9loop2
+prgnmdone:	lda	CURDEV
+		bne	finishfakecmd
 diskimg:	lda	dirpos		; load dir position
 		jsr	mount		; and execute a "mount" there
 		bcc	mountok		; no error -> continue
@@ -278,16 +300,18 @@ diskimg:	lda	dirpos		; load dir position
 		print	mnterrmsg, mnterrlen
 		jmp	exit
 mountok:	jsr	softreset	; mounted -> "soft-reset" machine
-actionkey:	lda	#$ff		; check whether RETURN was pressed
+		lda	ZPS_4		; check whether RETURN was pressed
 		cmp	#$d		; for this action
 		bne	skipload	; if not, skip faking a LOAD
 		ldy	#0		; write fake LOAD"0:*",8,1 to screen
 fakecmdloop:	lda	fakeldcmd,y
-		beq	fakecmddone
+		beq	finishfake8cmd
 		sta	(ZPS_0),y
 		iny
 		bne	fakecmdloop
-fakecmddone:	ldx	#fakerunkeyslen	; store length for faking keyboard
+finishfake8cmd:	lda	#8
+finishfakecmd:	jsr	writedrvno
+		ldx	#fakerunkeyslen	; store length for faking keyboard
 		stx	KBBUFLEN	; input ...
 		dex
 .if .defined(MACH_vic20) .or .defined(MACH_vic20e) .or .defined(MACH_vic20x)
@@ -322,7 +346,7 @@ ib_invloop:	lda	(ZPS_0),y
 		sta	(ZPS_2),y
 		dey
 		bpl	ib_invloop
-nostop:		rts
+		jmp	waitkey
 
 ; "Soft reset" routine for exit after mount or selecting a PRG to run
 softreset:
@@ -339,10 +363,10 @@ softreset:
 		jsr	STARTMSG	; print machine's start message
 sr_fixstack:	ldx	#$ff		; restore stack pointer
 		txs
-		lda	CRSRROW		; get current screen row
-		clc
-		adc	#2		; set screen position to two below
-		sta	scrpos
+		ldx	CRSRROW		; get current screen row
+		inx
+		inx			; set screen position to two below
+		stx	scrpos
 		jsr	clrcol		; init color RAM and "fallthrough"
 
 ; Calculate pointer to current screen line in ZPS_0/ZPS_1,
@@ -393,7 +417,6 @@ calcscrvec:
 showdir:
 		lda	#0		; init base screen pointer ZPS_0/ZPS_1
 		sta	ZPS_0		; and scratch space in ZPS_2
-		sta	ZPS_2
 		lda	#>SCREEN
 		sta	ZPS_1
 		sec
@@ -421,54 +444,37 @@ sd_maxok:	sta	ZPS_4		; row counter limit -> ZPS_4
 		adc	#>filedisp
 .endif
 		sta	sd_fnrd+2
-		lda	#0		; calculate offset to first file type
-		sta	ZPS_2
 		lda	scrollpos
-		asl	a
-		rol	ZPS_2
-		asl	a
-		rol	ZPS_2
+		jsr	ftoffset	; calculate offset to first file type
 		adc	#<filetypes
 		sta	sd_ftrd+1
 		lda	ZPS_2
 		adc	#>filetypes
 		sta	sd_ftrd+2
 		ldy	#0		; init current row counter
-		sty	ZPS_2		; in ZPS_2
-sd_loop:	lda	#0
+sd_loop:	sty	ZPS_2		; in ZPS_2
+		lda	#0
 		cpy	scrpos		; handling selected row?
 		bne	sd_norev
 		lda	#$80		; then output in reverse (store
 sd_norev:	sta	ZPS_3		; bit in ZPS_3, or'd to every output)
 		ldy	#0		; init current column counter
 .if SCRCOLS > 25
-		lda	#$20		; if enough screen space, first
-		ora	ZPS_3		; print two spaces
-		sta	(ZPS_0),y
-		iny
-		sta	(ZPS_0),y
+		jsr	sd_spcout	; if enough screen space, first
+		sta	(ZPS_0),y	; print two spaces
 		iny
 .endif
 		lda	#'<'		; print '<'
-		ora	ZPS_3
-		sta	(ZPS_0),y
-		iny
+		jsr	sd_chrout
 		ldx	#1		; print 3-character file type
 sd_ftrd:	lda	$ffff,x
-		ora	ZPS_3
-		sta	(ZPS_0),y
-		iny
+		jsr	sd_chrout
 		inx
 		cpx	#4
 		bne	sd_ftrd
 		lda	#'>'		; print '>'
-		ora	ZPS_3
-		sta	(ZPS_0),y
-		iny
-		lda	#$20		; print a space
-		ora	ZPS_3
-		sta	(ZPS_0),y
-		iny
+		jsr	sd_chrout
+		jsr	sd_spcout	; print a space
 .if SCRCOLS > 25
 		sta	(ZPS_0),y	; plus another when enough screen space
 		iny
@@ -478,16 +484,12 @@ sd_fnrd:	lda	$ffff,x
 .if .defined(NODISPFN)
 		jsr	scrcode		; convert if necessary
 .endif
-		ora	ZPS_3
-		sta	(ZPS_0),y
-		iny
+		jsr	sd_chrout
 		inx
 		cpx	#$10
 		bne	sd_fnrd
 .if SCRCOLS > 25
-		lda	#$20		; another space when enough room...
-		ora	ZPS_3
-		sta	(ZPS_0),y
+		jsr	sd_spcout	; another space when enough room...
 .endif
 		clc			; advance all the pointers
 		lda	sd_ftrd+1
@@ -510,7 +512,10 @@ sd_fnptrok:	clc
 sd_scrptrok:	ldy	ZPS_2		; load row counter
 		iny			; increment
 		cpy	ZPS_4		; number of rows to print reached?
-		beq	sd_done
-		sty	ZPS_2		; no -> repeat
-		jmp	sd_loop
+		bne	sd_loop		; no -> repeat
 sd_done:	rts
+sd_spcout:	lda	#$20
+sd_chrout:	ora	ZPS_3		; apply reverse bit
+		sta	(ZPS_0),y	; store to screen
+		iny			; increment column counter
+		rts
