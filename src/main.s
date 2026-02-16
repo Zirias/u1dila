@@ -17,13 +17,19 @@
 
 .data
 
-readerrmsg:	.byte	$d, "error reading directory!", $d
+.if SCRCOLS > 25
+SPC_OR_NL=	$20
+.else
+SPC_OR_NL=	$d
+.endif
+
+readerrmsg:	.byte	$d, "error reading", SPC_OR_NL, "directory!", $d
 readerrlen=	* - readerrmsg
 
-cderrmsg:	.byte	$d, "error sending cd command!", $d
+cderrmsg:	.byte	$d, "error sending cd", SPC_OR_NL, "command!", $d
 cderrlen=	* - cderrmsg
 
-mnterrmsg:	.byte	$d, "error sending mount/kill!", $d
+mnterrmsg:	.byte	$d, "error sending", SPC_OR_NL, "mount/kill!", $d
 mnterrlen=	* - mnterrmsg
 
 fakeldcmd:	.byte	12, 15, 1, 4, $22	; LOAD"
