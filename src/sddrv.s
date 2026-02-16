@@ -46,29 +46,40 @@ filetypes:	.res	4 * MAXFILES	; types, 1 flags byte, 3 screen code
 
 .code
 
+; standard listen preface
+sdlisten:
+		lda	#0
+		sta	IOSTATUS	; reset bus status
+		lda	CURDEV
+		jsr	KRNL_LISTEN	; listen, drive!
+		txa
+		jmp	KRNL_SECOND
+
 ; Read current directory by requesting the "pseudo-BASIC" file "$" from the
 ; drive and parsing the result on the fly
 readdir:
-		lda	CURDEV
-		jsr	KRNL_LISTEN	; listen, drive!
-		lda	#$f0		; open ($f) channel 0 ($0)
-		jsr	KRNL_SECOND
-		asl	IOSTATUS	; check bus status
-		bcc	rd_listened
-rd_error:	rts			; on error, exit with carry set
-rd_listened:	lda	#0		; reset bus status
-		sta	IOSTATUS
+		ldx	#$f0		; open ($f) channel 0 ($0)
+		jsr	sdlisten
 		lda	#'$'		; request file "$"
 		jsr	KRNL_CIOUT
 		jsr	KRNL_UNLSN	; stop listening
+		bit	IOSTATUS	; check bus status
+		bpl	rd_listened
+		sec
+		rts			; on error, exit with carry set
+rd_listened:	lda	#0		; reset bus status
+		sta	IOSTATUS
 		lda	CURDEV
 		jsr	KRNL_TALK	; now, please talk ... ;)
 		lda	#$60		; ... on channel 0
 		jsr	KRNL_TKSA
 		ldy	#6		; skip 6 bytes (ldaddr, BASIC ptr/line)
 rd_titleloop:	jsr	rdbyte		; read a byte
-		bcs	rd_error	; carry means error
-		dey
+		bcc	rd_talked	; carry means error
+		jsr	KRNL_UNTLK
+		sec
+		rts
+rd_talked:	dey
 		bpl	rd_titleloop
 		tax			; now skip until NUL byte marking
 		bne	rd_titleloop	; end of BASIC  line
@@ -264,10 +275,8 @@ rd_ftsamepg:	inc	nfiles		; increment number if files
 		beq	rd_dirend	; max reached -> stop reading $
 		jmp	rd_fileloop	; read next entry
 rd_dirend:	jsr	KRNL_UNTLK	; drive, stop talking!
-		lda	CURDEV
-		jsr	KRNL_LISTEN	; and listen now...
-		lda	#$e0		; close ($e) channel 0 ($0).
-		jsr	KRNL_SECOND
+		ldx	#$e0		; close ($e) channel 0 ($0).
+		jsr	sdlisten
 		jsr	KRNL_UNLSN	; stop listening
 		clc			; no error -> clear carry
 		rts
@@ -278,10 +287,8 @@ init:
 		ldx	#>initcmd
 		ldy	#initcmdlen-1
 		jsr	sendcmd
-		bcs	init_done	; error sending command?
 		jsr	KRNL_UNLSN
-		asl	IOSTATUS	; move possible timeout to carry
-init_done:	rts
+		jmp	checksenderr	; to final check
 
 ; Send the cd:xxxx command
 chdir:
@@ -290,10 +297,9 @@ chdir:
 		ldx	#>cdcmd
 		ldy	#cdcmdlen-1
 		jsr	sendcmd		; send command prefix "cd:"
-		bcs	cd_done		; error?
+		bmi	mnt_unlsn	; error?
 		jsr	sendname	; send the name (also doing UNLSN)
-		asl	IOSTATUS	; move possible timeout to carry
-cd_done:	rts
+		jmp	checksenderr	; to final check
 
 ; Send the mount:xxxx command, followed by kill0
 mount:
@@ -302,17 +308,23 @@ mount:
 		ldx	#>mntcmd
 		ldy	#mntcmdlen-1
 		jsr	sendcmd		; send command prefix "mount:"
-		bcs	mnt_done	; error?
+		bmi	mnt_unlsn	; error?
 		jsr	sendname	; send the name (also doing UNLSN)
-		asl	IOSTATUS	; move possible timeout to carry
-		bcs	mnt_done	; error?
+		bit	IOSTATUS	; check timeout flag
+		bmi	cse_error	; error?
 		lda	#<killcmd
 		ldx	#>killcmd
 		ldy	#killcmdlen-1
 		jsr	sendcmd		; send "kill0" command
-		jsr	KRNL_UNLSN
-		asl	IOSTATUS	; move possible timeout to carry
-mnt_done:	rts
+mnt_unlsn:	jsr	KRNL_UNLSN
+
+; check error after sending command
+checksenderr:
+		clc
+		bit	IOSTATUS	; check timeout flag
+		bpl	send_done
+cse_error:	sec
+send_done:	rts
 
 ; Send a given command to the drive:
 ;	A/X:	pointer to command string (in reverse order)
@@ -321,24 +333,17 @@ sendcmd:
 		sta	sc_cmdloop+1	; save pointer to command
 		stx	sc_cmdloop+2
 		sty	sc_listened+1	; save starting index for sending
-		lda	#0		; reset bus status just in case
-		sta	IOSTATUS
-		lda	CURDEV
-		jsr	KRNL_LISTEN	; listen, drive!
-		lda	#$6f		; ... on channel #15
-		jsr	KRNL_SECOND
+		ldx	#$6f		; command channel (#15)
+		jsr	sdlisten	; listen!
 		bit	IOSTATUS
-		bpl	sc_listened	; error listening?
-		jsr	KRNL_UNLSN
-sc_error:	sec			; then set carry to indicate the error
-		rts
+		bmi	sc_done		; error listening?
 sc_listened:	ldx	#$ff		; index of last byte
 sc_cmdloop:	lda	$ffff,x		; send bytes in ...
 		jsr	KRNL_CIOUT	; ... reverse order
 		dex
 		bpl	sc_cmdloop
-		clc			; no error -> clear carry
-		rts
+		inx			; no error -> clear negative
+sc_done:	rts
 
 ; Calculate filename offset for file number in A (or: A*16)
 ; in:	A
