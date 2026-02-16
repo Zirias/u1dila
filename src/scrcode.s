@@ -2,6 +2,9 @@
 
 .code
 
+; Simple conversion PETSCII -> screen code in A.
+; Replaces any control code with a space ($20).
+; Assumes N flag to still reflect the PETSCII character loaded by caller.
 scrcode:
 		bmi	sc_shifted
 		cmp	#$20
