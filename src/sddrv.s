@@ -33,7 +33,7 @@ initcmdlen=	*-initcmd
 nfiles:		.res	1		; number of files in dir, 0 = 256
 
 .if .defined(VIC20_5K)
-MAXFILES=	102			; maximum for unexpanded vic-20 ..
+MAXFILES=	104			; maximum for unexpanded vic-20 ..
 .else
 MAXFILES=	256			; ... and all other machines
 .segment "ALBSS"
@@ -55,10 +55,9 @@ readdir:
 		jsr	KRNL_LISTEN	; listen, drive!
 		lda	#$f0		; open ($f) channel 0 ($0)
 		jsr	KRNL_SECOND
-		bit	IOSTATUS	; check bus status
-		bpl	rd_listened
-rd_error:	sec			; on error, set carry and exit
-		rts
+		asl	IOSTATUS	; check bus status
+		bcc	rd_listened
+rd_error:	rts			; on error, exit with carry set
 rd_listened:	lda	#'$'		; request file "$"
 		jsr	KRNL_CIOUT
 		jsr	KRNL_UNLSN	; stop listening
@@ -75,18 +74,21 @@ rd_titleloop:	jsr	rdbyte		; read a byte
 		bpl	rd_titleloop
 		tax			; now skip until NUL byte marking
 		bne	rd_titleloop	; end of BASIC  line
-		lda	#0		; we ignored the "title" line, but
-		ldy	#$1f		; having received it is an indicator
-rd_clrloop:	sta	filenames,y	; everything worked, so
-.if .not .defined(NODISPFN)		; first initialize our buffers to 0
-		eor	#$20		; (and the screencode buffer to
-		sta	filedisp,y	; $20 == space)
+
+		; we ignored the "title" line, but having received it is an
+		; indicator everything worked, so start actual parsing
+
+		ldy	#$1f		; initialize our first two entries
+rd_clrloop:	sta	filenames,y	; to 0 ....
+.if .not .defined(NODISPFN)
+		eor	#$20		; ... and $20 (space) for screencode
+		sta	filedisp,y	;
 		eor	#$20
 .endif
 		dey
 		bpl	rd_clrloop
 		lda	#'/'		; create the two "pseudo-dirs"
-		sta	filenames	; / and .. first
+		sta	filenames	; "/" and ".."
 .if .not .defined(NODISPFN)
 		sta	filedisp
 .endif
@@ -237,12 +239,11 @@ rd_ftfdone:	clc
 		adc	#$10
 		sta	rd_fnwrite1+1
 		sta	rd_fnwrite2+1
-		lda	rd_fnwrite1+2
-		adc	#0
-		sta	rd_fnwrite1+2
-		sta	rd_fnwrite2+2
+		bcc	rd_fnsamepg
+		inc	rd_fnwrite1+2
+		inc	rd_fnwrite2+2
+rd_fnsamepg:	clc
 .if .not .defined(NODISPFN)
-		clc
 		lda	rd_fdwrite1+1
 		adc	#$10
 		sta	rd_fdwrite1+1
