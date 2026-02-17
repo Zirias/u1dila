@@ -18,11 +18,12 @@ disk. It also offers directly launching "single-file" `.prg` programs.
 
 ![u1dila screenshot](https://github.com/Zirias/u1dila/blob/res/screenshot.png?raw=true)
 
-There's a limit for the number of files that can be shown in a directory. To
-fit the "file number" into one byte, this limit is **254 files** (with two
-pseudo-files added for changing directory to parent and root). That's probably
-enough for most practical purposes, but if you have any larger directory on
-your SD card, additional files will simply be ignored.
+There's a limit for the number of entries that can be shown in a directory. To
+fit the "file number" into one byte, this limit is **254 entries** (with two
+pseudo-files added for changing directory to parent and root, and only
+counting entries of "supported" types). That's probably enough for most
+practical purposes, but if you have any larger directory on your SD card,
+additional files will simply be ignored.
 
 The following build targets (add `PLATFORM=xxx` to your `make` command,
 default is `c16`) are offered, and you can download prebuilt `prg` files for
@@ -50,7 +51,9 @@ for example run one of these to make the tool use drive `#10`:
     POKE 174,10        :REM for C16, C116, PLUS/4
     POKE 186,10        :REM for all other supported machines
 
-Once started, the tool can be controlled with the keyboard:
+Once started, the tool will load the current directory and display it for
+browsing, only showing entries of types `DIR`, `D64` and `PRG`. It can be
+controlled with the keyboard as follows:
 
 * `RUN/STOP`: exit the tool
 * `CRSR UP/DOWN`: select entries in the directory
@@ -60,7 +63,6 @@ Once started, the tool can be controlled with the keyboard:
            a soft reset and automatically load and run the first file
   - `PRG`: perform a soft reset and load+run the selected file (directly from
            the control device)
-  - *other types*: Ignored
 * `F1`: perform action on the selected entry, same as `RETURN` with one
   exception: When used on a `D64` image, automatically loading + running is
   skipped, so you can manually load whatever file you wanted from the image.
