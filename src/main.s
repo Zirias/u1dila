@@ -277,14 +277,14 @@ fakeldsloop1:	lda	fakeldcmd,y	; write a fake LOAD cmd to screen
 		iny
 		cpy	#fakeldcmdlen
 		bne	fakeldsloop1
+		ldx	#$f
 prgrdnm:	lda	$ffff,x		; write selected file name to screen
 		beq	prgnmdone
 		jsr	scrcode
 		sta	(ZPS_0),y
 		iny
-		inx
-		cpx	#$10		; check max filename length
-		bne	prgrdnm
+		dex
+		bpl	prgrdnm
 prgnmdone:	lda	CURDEV
 		bne	finishfakecmd
 diskimg:	lda	dirpos		; load dir position
@@ -472,15 +472,14 @@ sd_ftrd:	lda	$ffff,x
 		sta	(ZPS_0),y	; plus another when enough screen space
 		iny
 .endif
-		ldx	#0		; print 16 character filename
+		ldx	#$f		; print 16 character filename
 sd_fnrd:	lda	$ffff,x
 .if .defined(NODISPFN)
 		jsr	scrcode		; convert if necessary
 .endif
 		jsr	sd_chrout
-		inx
-		cpx	#$10
-		bne	sd_fnrd
+		dex
+		bpl	sd_fnrd
 .if SCRCOLS > 25
 		jsr	sd_spcout	; another space when enough room...
 .endif

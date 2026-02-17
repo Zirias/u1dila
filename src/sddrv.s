@@ -30,7 +30,7 @@ initcmdlen=	*-initcmd
 nfiles:		.res	1		; number of files in dir, 0 = 256
 
 .if .defined(VIC20_5K)
-MAXFILES=	104			; maximum for unexpanded vic-20 ..
+MAXFILES=	105			; maximum for unexpanded vic-20 ..
 .else
 MAXFILES=	256			; ... and all other machines
 .segment "ALBSS"
@@ -96,16 +96,16 @@ rd_clrloop:	sta	filenames,y	; to 0 ....
 		dey
 		bpl	rd_clrloop
 		lda	#'/'		; create the two "pseudo-dirs"
-		sta	filenames	; "/" and ".."
+		sta	filenames+$f	; "/" and ".."
 .if .not .defined(NODISPFN)
-		sta	filedisp
+		sta	filedisp+$f
 .endif
 		lda	#'.'
-		sta	filenames+$10
-		sta	filenames+$11
+		sta	filenames+$1e
+		sta	filenames+$1f
 .if .not .defined(NODISPFN)
-		sta	filedisp+$10
-		sta	filedisp+$11
+		sta	filedisp+$1e
+		sta	filedisp+$1f
 .endif
 		lda	#$80			; type flag for DIR
 		sta	filetypes
@@ -149,7 +149,7 @@ rd_entryloop:	jsr	rdbyte		; BASIC line pointer and number
 		beq	rd_fileloop	; found NUL: end of line
 		cmp	#'"'		; look for " (start of filename)
 		bne	rd_entryloop
-		ldy	#0		; name character counter
+		ldy	#$f		; name character counter
 rd_fnmloop:	jsr	rdbyte
 		bcc	*+5
 		jmp	rd_dirend
@@ -160,26 +160,24 @@ rd_fnwrite1:	sta	$ffff,y		; store byte of filename
 		jsr	scrcode		; and convert to screencode to
 rd_fdwrite1:	sta	$ffff,y		; store that as well
 .endif
-		iny
-		cpy	#$10		; check maximum length (16)
-		bne	rd_fnmloop
+		dey
+		bpl	rd_fnmloop
 rd_fnmtrunc:	jsr	rdbyte		; if necessary, read extra name bytes
 		bcc	*+5
 		jmp	rd_dirend
 		beq	rd_fileloop	; NUL? -> end of current line
 		cmp	#'"'		; end of filename?
 		bne	rd_fnmtrunc	; otherwise keep ignoring
+		beq	rd_nmfilled	; skip filling up
 rd_havenm:	lda	#0		; name complete, fill up with NUL
-rd_nmfill:	cpy	#$10		; until we have 16 bytes
-		beq	rd_nmfilled
 rd_fnwrite2:	sta	$ffff,y		; store NUL
 .if .not .defined(NODISPFN)
 		eor	#$20		; ... and space for screen code
 rd_fdwrite2:	sta	$ffff,y
 		eor	#$20
 .endif
-		iny
-		bne	rd_nmfill
+		dey
+		bpl	rd_fnwrite2
 rd_nmfilled:	jsr	rdbyte		; keep reading to find type
 		bcc	*+5
 		jmp	rd_dirend
@@ -371,13 +369,12 @@ setname:
 
 ; Send current file name
 sendname:
-		ldx	#0
+		ldx	#$f
 sn_rdfn:	lda	$ffff,x
 		beq	sn_cmddone	; NUL: End of filename
 		jsr	KRNL_CIOUT
-		inx
-		cpx	#$10		; max 16 bytes
-		bne	sn_rdfn
+		dex
+		bpl	sn_rdfn
 sn_cmddone:	jmp	KRNL_UNLSN	; UNLSN after sending name
 
 ; Read a byte from talking drive
