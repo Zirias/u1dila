@@ -213,25 +213,25 @@ rd_nextfile:	lda	#0		; initialize filetype flags to 0
 		cmp	#9		; second char is 'I'?
 		beq	rd_ftchkdir	; yes -> could be DIR
 		cmp	#$36		; second char is '6'?
-		bne	rd_ftfdone	; no -> no known file type
+		bne	rd_fileloopend	; no -> no known file type
 		iny
 		lda	(ZPS_0),y
 		cmp	#$34		; last char is '4'?
-		bne	rd_ftfdone	; no -> no known file type
+		bne	rd_fileloopend	; no -> no known file type
 		lda	#1		; flag for "D64"
 		ldy	#0
 		sta	(ZPS_0),y	; store in flags
 		beq	rd_ftfdone
 rd_ftchkprg:	cmp	#16		; first char is 'P'?
-		bne	rd_ftfdone	; no -> no known file type
+		bne	rd_fileloopend	; no -> no known file type
 		iny
 		lda	(ZPS_0),y
 		cmp	#18		; second char is 'R'?
-		bne	rd_ftfdone
+		bne	rd_fileloopend
 		iny
 		lda	(ZPS_0),y
 		cmp	#7		; last char is 'G'?
-		bne	rd_ftfdone
+		bne	rd_fileloopend
 		lda	#2		; flag for "PRG"
 		ldy	#0
 		sta	(ZPS_0),y	; store in flags
@@ -239,7 +239,7 @@ rd_ftchkprg:	cmp	#16		; first char is 'P'?
 rd_ftchkdir:	iny
 		lda	(ZPS_0),y
 		cmp	#18		; final char is 'R'?
-		bne	rd_ftfdone
+		bne	rd_fileloopend
 		lda	#$80		; flag for "DIR"
 		ldy	#0
 		sta	(ZPS_0),y	; store in flags
@@ -273,7 +273,7 @@ rd_ftsamepg:	inc	nfiles		; increment number if files
 		cmp	#MAXFILES	; check for max
 .endif
 		beq	rd_dirend	; max reached -> stop reading $
-		jmp	rd_fileloop	; read next entry
+rd_fileloopend:	jmp	rd_fileloop	; read next entry
 rd_dirend:	jsr	KRNL_UNTLK	; drive, stop talking!
 		ldx	#$e0		; close ($e) channel 0 ($0).
 		jsr	sdlisten
