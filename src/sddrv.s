@@ -110,13 +110,13 @@ rd_clrloop:	sta	filenames,y	; to 0 ....
 		lda	#$80			; type flag for DIR
 		sta	filetypes
 		sta	filetypes+4
-		lda	#4			; 'D'
+		lda	#18			; 'R'
 		sta	filetypes+1
 		sta	filetypes+5
 		lda	#9			; 'I'
 		sta	filetypes+2
 		sta	filetypes+6
-		lda	#18			; 'R'
+		lda	#4			; 'D'
 		sta	filetypes+3
 		sta	filetypes+7
 		lda	#2			; now we have 2 files
@@ -185,7 +185,7 @@ rd_nmfilled:	jsr	rdbyte		; keep reading to find type
 		jmp	rd_dirend
 		cmp	#$20		; space? not the type yet
 		beq	rd_nmfilled
-		ldy	#1		; index to store type characters
+		ldy	#3		; index to store type characters
 rd_typeloop:	tax			; copy to X just for testing
 		beq	rd_fileloop	; NUL: end of current line
 		jsr	scrcode		; otherwise convert to screen code
@@ -193,56 +193,52 @@ rd_ftwrite:	sta	(ZPS_0),y	; and store
 		jsr	rdbyte		; read next character
 		bcc	*+5
 		jmp	rd_dirend
-		iny
-		cpy	#5		; have all 3 type characters?
+		dey			; have all 3 type characters?
 		bne	rd_typeloop	; no -> repeat
 rd_scaneol:	tax			; copy to X just for testing
 		beq	rd_nextfile	; NUL: end found, do post-process
 		jsr	rdbyte		; keep reading/ignoring until EOL
 		bcc	rd_scaneol
 		jmp	rd_dirend
-rd_nextfile:	lda	#0		; initialize filetype flags to 0
-		tay
-		sta	(ZPS_0),y
-		iny
+rd_nextfile:	ldy	#3
 		lda	(ZPS_0),y
 		cmp	#4		; first char is 'D'?
 		bne	rd_ftchkprg	; no -> check PRG
-		iny
+		dey
 		lda	(ZPS_0),y
 		cmp	#9		; second char is 'I'?
 		beq	rd_ftchkdir	; yes -> could be DIR
 		cmp	#$36		; second char is '6'?
 		bne	rd_fileloopend	; no -> no known file type
-		iny
+		dey
 		lda	(ZPS_0),y
 		cmp	#$34		; last char is '4'?
 		bne	rd_fileloopend	; no -> no known file type
-		lda	#1		; flag for "D64"
-		ldy	#0
+		tya			; 1, flag for "D64"
+		dey
 		sta	(ZPS_0),y	; store in flags
 		beq	rd_ftfdone
-rd_ftchkprg:	cmp	#16		; first char is 'P'?
-		bne	rd_fileloopend	; no -> no known file type
-		iny
-		lda	(ZPS_0),y
-		cmp	#18		; second char is 'R'?
-		bne	rd_fileloopend
-		iny
-		lda	(ZPS_0),y
-		cmp	#7		; last char is 'G'?
-		bne	rd_fileloopend
-		lda	#2		; flag for "PRG"
-		ldy	#0
-		sta	(ZPS_0),y	; store in flags
-		beq	rd_ftfdone
-rd_ftchkdir:	iny
+rd_ftchkdir:	dey
 		lda	(ZPS_0),y
 		cmp	#18		; final char is 'R'?
 		bne	rd_fileloopend
+		dey
 		lda	#$80		; flag for "DIR"
-		ldy	#0
 		sta	(ZPS_0),y	; store in flags
+		bne	rd_ftfdone
+rd_ftchkprg:	cmp	#16		; first char is 'P'?
+		bne	rd_fileloopend	; no -> no known file type
+		dey
+		lda	(ZPS_0),y
+		cmp	#18		; second char is 'R'?
+		bne	rd_fileloopend
+		dey
+		lda	(ZPS_0),y
+		cmp	#7		; last char is 'G'?
+		bne	rd_fileloopend
+		dey
+		tya			; 0, flag for "PRG"
+		sta	(ZPS_0),y
 rd_ftfdone:	clc
 		lda	rd_fnwrite1+1	; update all pointers for next entry
 		adc	#$10

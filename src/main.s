@@ -254,7 +254,6 @@ action:		lda	dirpos		; load dir position
 		adc	#>filetypes
 		sta	rdtype+2
 rdtype:		lda	$ffff		; load file type flags
-		beq	noaction	; unsupported type -> do nothing
 		bpl	notadir		; #$80 means directory
 		lda	dirpos		; load dir position
 		jsr	chdir		; perform a cd command
@@ -263,8 +262,7 @@ cderror:	jsr	clrscr		; print cd error message
 		print	cderrmsg, cderrlen
 		jmp	exit		; and quit
 cdok:		jmp	mainloop	; cd success -> restart main loop
-notadir:	lsr	a		; #$01 is D64 image
-		bcs	diskimg
+notadir:	bne	diskimg		; #$01 means D64 image
 		jsr	softreset	; PRG: first "soft-reset" machine
 		lda	dirpos		; load dir position
 		jsr	fnoffset	; calculate filename offset
@@ -462,11 +460,10 @@ sd_norev:	sta	ZPS_3		; bit in ZPS_3, or'd to every output)
 .endif
 		lda	#'<'		; print '<'
 		jsr	sd_chrout
-		ldx	#1		; print 3-character file type
+		ldx	#3		; print 3-character file type
 sd_ftrd:	lda	$ffff,x
 		jsr	sd_chrout
-		inx
-		cpx	#4
+		dex
 		bne	sd_ftrd
 		lda	#'>'		; print '>'
 		jsr	sd_chrout
