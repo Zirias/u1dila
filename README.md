@@ -38,17 +38,28 @@ these from a release page as well:
 * `c128`: Commodore 128 (will be forced into 40 column mode for simplicity)
 
 To use `u1dila`, configure your 1541-U1 to offer the emulated 1541 as drive
-number `#8` and the control device as drive number `#9`. It will then load the
-SD card directory on start and can be controlled with the keyboard:
+number `#8`. The control device can use any other drive number.
+
+**`u1dila` assumes that it's initially loaded from the control device**, IOW,
+from the SD card of the 1541-U. It will use that same device to load and
+browse directories.
+
+You can override this before running `u1dila` using a simple `POKE` command,
+for example run one of these to make the tool use drive `#10`:
+
+    POKE 174,10        :REM for C16, C116, PLUS/4
+    POKE 186,10        :REM for all other supported machines
+
+Once started, the tool can be controlled with the keyboard:
 
 * `RUN/STOP`: exit the tool
 * `CRSR UP/DOWN`: select entries in the directory
 * `RETURN`: perform an action on the selected entry, depending on its type:
   - `DIR`: change to the selected directory and reload
-  - `D64`: mount the image on drive `#8`, disable drive `#9`, perform a soft
-           reset and automatically load and run the first file
+  - `D64`: mount the image on drive `#8`, disable the control device, perform
+           a soft reset and automatically load and run the first file
   - `PRG`: perform a soft reset and load+run the selected file (directly from
-           drive `#9`)
+           the control device)
   - *other types*: Ignored
 * `F1`: perform action on the selected entry, same as `RETURN` with one
   exception: When used on a `D64` image, automatically loading + running is
