@@ -125,16 +125,13 @@ savefkeys:	lda	KEYDEFS,x	; definitions
 		sta	fkeysave,x
 		dex
 		bpl	savefkeys
-		lda	#1		; fill the first half with 1, here
-		ldx	#FKEYS-1	; the lengths of the mappings are
-fakeflen:	sta	KEYDEFS,x	; stored
+		ldx	#FKEYS-1	; create the "identity mapping"
+fakefdefs:	lda	KEYCODES,x	; fetch control code from ROM
+		sta	KEYDEFS+FKEYS,x
+		lda	#1		; use constant "1" for the length
+		sta	KEYDEFS,x
 		dex
-		bpl	fakeflen
-		ldx	#FKEYS-1	; copy key codes of the function keys
-fakefcodes:	lda	KEYCODES,x	; into second half to achieve
-		sta	KEYDEFS+FKEYS,x	; "identity mapping"
-		dex
-		bpl	fakefcodes
+		bpl	fakefdefs
 .endif
 .if .defined(MACH_c128)
 		bit	$d7		; check c128 screen mode
