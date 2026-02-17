@@ -4,7 +4,6 @@
 .include "zpshared.inc"
 
 .export readdir
-.export init
 .export chdir
 .export mount
 .export fnoffset
@@ -109,6 +108,7 @@ rd_clrloop:	sta	filenames,y	; to 0 ....
 		sta	filedisp+$11
 .endif
 		lda	#$80			; type flag for DIR
+		sta	filetypes
 		sta	filetypes+4
 		lda	#4			; 'D'
 		sta	filetypes+1
@@ -292,6 +292,7 @@ init:
 
 ; Send the cd:xxxx command
 chdir:
+		beq	init		; force workaround for dirpos == 0
 		jsr	setname		; set pointer to current filename
 		lda	#<cdcmd
 		ldx	#>cdcmd

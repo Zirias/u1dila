@@ -247,11 +247,7 @@ barup:		jsr	calcscrvec	; get pointer to current screen row
 		dec	scrpos		; screen position
 doinv:		jmp	invbars
 action:		lda	dirpos		; load dir position
-		bne	chktype		; not first -> continue
-		jsr	init		; special-case for first entry
-		bcs	cderror		; handle command failed and
-		bcc	cdok		; command success
-chktype:	jsr	ftoffset	; calculate filetype offset from
+		jsr	ftoffset	; calculate filetype offset from
 		adc	#<filetypes	; add filetype base address
 		sta	rdtype+1
 		lda	ZPS_2
