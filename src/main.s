@@ -208,7 +208,7 @@ movedown:	ldx	dirpos		; load current dir position
 		lda	scrollpos	; otherwise check scroll position
 		adc	#SCRROWS-1
 		cmp	nfiles		; already scrolled to the bottom?
-		beq	bardown		; then also move the bar
+		bcs	bardown		; then also move the bar
 		inc	scrollpos	; otherwise scroll one down
 		inc	dirpos		; adjust dir position
 		bne	doscroll	; to common scroll code
