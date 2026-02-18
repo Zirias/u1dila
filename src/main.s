@@ -202,6 +202,7 @@ movedown:	ldx	dirpos		; load current dir position
 		inx			; and increment
 		cpx	nfiles		; still inside directory?
 		beq	waitkey		; if not, ignore moving down
+		inc	dirpos		; adjust dir position
 		lda	scrpos		; load current screen position
 		cmp	#SCRROWS-4	; above 4th row from bottom?
 		bcc	bardown		; then just move the bar
@@ -210,38 +211,23 @@ movedown:	ldx	dirpos		; load current dir position
 		cmp	nfiles		; already scrolled to the bottom?
 		bcs	bardown		; then also move the bar
 		inc	scrollpos	; otherwise scroll one down
-		inc	dirpos		; adjust dir position
 		bne	doscroll	; to common scroll code
 bardown:	jsr	calcscrvec	; get pointer to current screen row
-		lda	ZPS_0		; and calculate pointer to next
-		adc	#SCRCOLS	; screen row
-		sta	ZPS_2
-		lda	ZPS_1
-		adc	#0
-		sta	ZPS_3
-		inc	dirpos		; adjust dir and
-		inc	scrpos		; screen position
+		inc	scrpos		; adjust screen position
 		bne	doinv		; to common move bar
 moveup:		lda	dirpos		; load current dir position
 		beq	waitkey		; first entry? -> ignore moving up
+		dec	dirpos		; adjust dir position
 		lda	scrpos		; load current screen position
 		cmp	#4		; below 4th row from top?
 		bcs	barup		; then just move the bar
 		lda	scrollpos	; otherwise check scroll position
 		beq	barup		; scrolled to top? -> just move bar
 		dec	scrollpos	; otherwise scroll up
-		dec	dirpos		; adjust dir position
 doscroll:	jsr	showdir		; and re-render directory
 noaction:	beq	waitkey		; back to waiting for key
-barup:		jsr	calcscrvec	; get pointer to current screen row
-		lda	ZPS_0		; and calculate pointer to previous
-		sbc	#SCRCOLS-1	; screen row
-		sta	ZPS_2
-		lda	ZPS_1
-		sbc	#0
-		sta	ZPS_3
-		dec	dirpos		; adjust dir and
-		dec	scrpos		; screen position
+barup:		dec	scrpos		; adjust screen position
+		jsr	calcscrvec	; get pointer to current screen row
 doinv:		jmp	invbars
 action:		lda	dirpos		; load dir position
 		jsr	ftoffset	; calculate filetype offset from
@@ -326,19 +312,28 @@ skipload:	ldx	#$fb		; force stack pointer to the value
 		jmp	BASICPROMPT	; READY. and executing keyboard buffer.
 
 ; invert bars on screen for two rows,
-; base pointers in ZPS_0/ZPS_1 and ZPS_2/ZPS_3
+; base pointer to first row in ZPS_0/ZPS_1,
+; ZPS_2/ZPS_3 used for pointer to second row
 invbars:
 .if SCRCOLS > 25
+		lda	ZPS_0
+		adc	#SCRCOLS
+		sta	ZPS_2
+		lda	ZPS_1
+		adc	#0
+		sta	ZPS_3
 		ldy	#25
 .else
-		ldy	#SCRCOLS-1
+		ldy	#2*SCRCOLS-1
 .endif
 ib_invloop:	lda	(ZPS_0),y
 		eor	#$80
 		sta	(ZPS_0),y
+.if SCRCOLS > 25
 		lda	(ZPS_2),y
 		eor	#$80
 		sta	(ZPS_2),y
+.endif
 		dey
 		bpl	ib_invloop
 		jmp	waitkey
