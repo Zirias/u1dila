@@ -4,7 +4,10 @@ This is a browser and launcher for a 1541-Ultimate operated in "standalone
 mode". It currently only supports the original revision (**not** the UII or
 UII+).
 
-![u1dila screenshot](https://github.com/Zirias/u1dila/blob/res/screenshot.png?raw=true)
+<a href="https://github.com/Zirias/u1dila/blob/res/u1dila-vic20.png?raw=true"><img src="https://github.com/Zirias/u1dila/blob/res/u1dila-vic20.png?raw=true" alt="u1dila vic20" width="196px"></a>
+<a href="https://github.com/Zirias/u1dila/blob/res/u1dila-c64.png?raw=true"><img src="https://github.com/Zirias/u1dila/blob/res/u1dila-c64.png?raw=true" alt="u1dila c64" width="196px"></a>
+<a href="https://github.com/Zirias/u1dila/blob/res/u1dila-c16.png?raw=true"><img src="https://github.com/Zirias/u1dila/blob/res/u1dila-c16.png?raw=true" alt="u1dila c16, c116, plus/4" width="196px"></a>
+<a href="https://github.com/Zirias/u1dila/blob/res/u1dila-c128.png?raw=true"><img src="https://github.com/Zirias/u1dila/blob/res/u1dila-c128.png?raw=true" alt="u1dila c128" width="196px"></a>
 
 ## Terms and definitions
 
