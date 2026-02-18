@@ -360,7 +360,9 @@ fnoffset:
 ; Set pointer to current file name for 'sendname'
 setname:
 		jsr	fnoffset
+.if .defined(VIC20_5K)			; only needed for unaligned BSS
 		adc	#<filenames
+.endif
 		sta	sn_rdfn+1
 		lda	ZPS_2
 		adc	#>filenames

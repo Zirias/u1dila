@@ -245,10 +245,12 @@ barup:		jsr	calcscrvec	; get pointer to current screen row
 doinv:		jmp	invbars
 action:		lda	dirpos		; load dir position
 		jsr	ftoffset	; calculate filetype offset from
-		adc	#<filetypes	; add filetype base address
+.if .defined(VIC20_5K)			; only needed for unaligned BSS:
+		adc	#<filetypes	; add filetype base address LB
+.endif
 		sta	rdtype+1
 		lda	ZPS_2
-		adc	#>filetypes
+		adc	#>filetypes	; add filetype page
 		sta	rdtype+2
 rdtype:		lda	$ffff		; load file type flags
 		bpl	notadir		; #$80 means directory
@@ -263,7 +265,9 @@ notadir:	bne	diskimg		; #$01 means D64 image
 		jsr	softreset	; PRG: first "soft-reset" machine
 		lda	dirpos		; load dir position
 		jsr	fnoffset	; calculate filename offset
+.if .defined(VIC20_5K)			; only needed for unaligned BSS:
 		adc	#<filenames	; add filenames base address
+.endif
 		sta	prgrdnm+1
 		lda	ZPS_2
 		adc	#>filenames
@@ -412,7 +416,7 @@ showdir:
 		sta	ZPS_1
 		sec
 		lda	nfiles		; subtract scroll position from total
-		sbc	scrollpos	; number of files
+		sbc	scrollpos	; number of files -> rows to show
 .if .not .defined(VIC20_5K)
 		beq	sd_defmax	; 0 (nfiles=0) -> have full 256 files
 .endif
@@ -422,22 +426,22 @@ sd_defmax:	lda	#SCRROWS	; then use number of screen rows
 sd_maxok:	sta	ZPS_4		; row counter limit -> ZPS_4
 		lda	scrollpos	; load scroll position
 		jsr	fnoffset	; calculate offset to first filename
-.if .defined (NODISPFN)
-		adc	#<filenames	; add filenames base pointer
-.else
-		adc	#<filedisp	; screencode version when available
+.if .defined(VIC20_5K)			; only needed for unaligned BSS:
+		adc	#<filenames	; add filenames base pointer LB
 .endif
 		sta	sd_fnrd+1
 		lda	ZPS_2
 .if .defined (NODISPFN)
-		adc	#>filenames
+		adc	#>filenames	; add filenames page
 .else
-		adc	#>filedisp
+		adc	#>filedisp	; add filedisp page
 .endif
 		sta	sd_fnrd+2
 		lda	scrollpos
 		jsr	ftoffset	; calculate offset to first file type
+.if .defined(VIC20_5K)			; only needed for unaligned BSS
 		adc	#<filetypes
+.endif
 		sta	sd_ftrd+1
 		lda	ZPS_2
 		adc	#>filetypes
