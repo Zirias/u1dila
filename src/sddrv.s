@@ -30,7 +30,7 @@ initcmdlen=	*-initcmd
 nfiles:		.res	1		; number of files in dir, 0 = 256
 
 .if .defined(VIC20_5K)
-MAXFILES=	105			; maximum for unexpanded vic-20 ..
+MAXFILES=	106			; maximum for unexpanded vic-20 ..
 .else
 MAXFILES=	256			; ... and all other machines
 .segment "ALBSS"
