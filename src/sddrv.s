@@ -282,8 +282,12 @@ init:
 		ldx	#>initcmd
 		ldy	#initcmdlen-1
 		jsr	sendcmd
-		jsr	KRNL_UNLSN
-		jmp	checksenderr	; to final check
+		bmi	mnt_unlsn	; error?
+		dex			; give device a bit of time ...
+		bne	*-1		; we arrive with X=0 and Y=4 here, so
+		iny			; this delays for roughly 322k cycles
+		bne	*-4		; (or around 200 to 400 ms)
+		beq	mnt_unlsn	; -> to final check
 
 ; Send the cd:xxxx command
 chdir:
