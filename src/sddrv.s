@@ -1,3 +1,4 @@
+.include "clrscr.inc"
 .include "kernal.inc"
 .include "platform.inc"
 .include "scrcode.inc"
@@ -328,6 +329,7 @@ sendcmd:
 		sta	sc_cmdloop+1	; save pointer to command
 		stx	sc_cmdloop+2
 		sty	sc_listened+1	; save starting index for sending
+		jsr	clrscr		; caller always needs this
 		ldx	#$6f		; command channel (#15)
 		jsr	sdlisten	; listen!
 		bit	IOSTATUS

@@ -1,0 +1,2 @@
+.import clrscr
+.import clrcol

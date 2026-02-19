@@ -14,7 +14,7 @@ ifeq ($(filter $(PLATFORM),$(PLATFORMS)),)
 $(error Unsupported PLATFORM: $(PLATFORM))
 endif
 
-MODULES=	bhdr main scrcode sddrv zpshared
+MODULES=	bhdr clrscr main scrcode sddrv zpshared
 
 OBJS=		$(addprefix obj/$(PLATFORM)/,$(addsuffix .o,$(MODULES)))
 DEPS=		$(addprefix obj/$(PLATFORM)/,$(addsuffix .d,$(MODULES)))

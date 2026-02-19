@@ -1,3 +1,4 @@
+.include "clrscr.inc"
 .include "kernal.inc"
 .include "platform.inc"
 .include "scrcode.inc"
@@ -60,25 +61,6 @@ fkeysave:	.res	2*FKEYS
 .endif
 
 .code
-
-; Clear the screen and fill color RAM with currently selected color.
-; The latter is necessary at least on the vic20, which fills the color RAM
-; with the background color when clearing the screen.
-clrscr:
-		lda	#$93
-		jsr	KRNL_CHROUT
-clrcol:		lda	#>COLRAM
-		sta	cs_col+2
-		lda	CURCOL
-		ldx	#0
-		ldy	#SCRNPG
-cs_col:		sta	$ff00,x
-		inx
-		bne	cs_col
-		inc	cs_col+2
-		dey
-		bne	cs_col
-cs_done:	rts
 
 ; write trailing part of fake load command with the drive number from A
 writedrvno:
@@ -152,8 +134,8 @@ start:		lda	#$e		; bank out BASIC ROM, we need the
 		lda	#>nostop	; system's detection of the STOP key
 		sta	STOPVEC+1
 		cli			; initialization done, allow IRQ
-mainloop:	jsr	clrscr		; clear the screen
-		jsr	readdir		; read the directory
+		jsr	clrscr		; clear the screen
+mainloop:	jsr	readdir		; read the directory
 		bcc	browse		; no error -> start browsing
 		print	readerrmsg, readerrlen
 exit:		lda	#NOKEY		; exit, first wait until no key pressed
@@ -243,8 +225,7 @@ rdtype:		lda	$ffff		; load file type flags
 		lda	dirpos		; load dir position
 		jsr	chdir		; perform a cd command
 		bcc	cdok		; no error?
-cderror:	jsr	clrscr		; print cd error message
-		print	cderrmsg, cderrlen
+cderror:	print	cderrmsg, cderrlen
 		jmp	exit		; and quit
 cdok:		jmp	mainloop	; cd success -> restart main loop
 notadir:	bne	diskimg		; #$01 means D64 image
@@ -277,7 +258,6 @@ prgnmdone:	lda	CURDEV
 diskimg:	lda	dirpos		; load dir position
 		jsr	mount		; and execute a "mount" there
 		bcc	mountok		; no error -> continue
-		jsr	clrscr		; print mount error msg and exit
 		print	mnterrmsg, mnterrlen
 		jmp	exit
 mountok:	jsr	softreset	; mounted -> "soft-reset" machine
