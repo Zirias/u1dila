@@ -35,11 +35,8 @@ _LD65_1=	#
 all:		$(TARGET).prg
 world:		$(PLATFORMS)
 
-define PRULE
-$1:
-	@$(MAKE) --no-print-directory PLATFORM=$1
-endef
-$(foreach p,$(PLATFORMS),$(eval $(call PRULE,$p)))
+$(PLATFORMS):
+	@$(MAKE) --no-print-directory PLATFORM=$@
 
 clean:
 	rm -fr obj
