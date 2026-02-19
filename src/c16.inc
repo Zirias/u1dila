@@ -15,3 +15,7 @@ SCRNPG=		4		; screen/color RAM number of pages
 STARTMSG=	$80c2		; start message
 BASICPROMPT=	$867e		; READY -> to BASIC
 
+HAS_FKEYS=	1		; contains KERNAL function key mappings
+FKEYS_NUM=	8		; number of mapped keys
+FKEYS_DEFS=	$55f		; start of the key mappings
+FKEYS_CODES=	$dc41		; ROM table of key codes

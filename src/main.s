@@ -47,17 +47,8 @@ dirpos:		.res	1	; selected position in dir
 scrpos:		.res	1	; selected position on screen
 origstop:	.res	2	; save original STOP vector
 
-; For mapping function keys to themselves on c16 and c128
-.if .defined(MACH_c16)
-FKEYS=		8		; number of mappable keys
-KEYDEFS=	$55f		; start of definitions in RAM
-KEYCODES=	$dc41		; original key codes in ROM
-fkeysave:	.res	2*FKEYS	; room to save original vaues
-.elseif .defined(MACH_c128)
-FKEYS=		10		; see above ...
-KEYDEFS=	$1000
-KEYCODES=	$c6dd
-fkeysave:	.res	2*FKEYS
+.ifdef HAS_FKEYS
+fkeysave:	.res	2*FKEYS_NUM	; room to save original f key mappings
 .endif
 
 .code
@@ -101,17 +92,17 @@ ftoffset:
 ; Main entry point, the BASIC header SYS command jumps here
 entry:
 		sei
-.if .defined(MACH_c16) .or .defined(MACH_c128)
-		ldx	#(2*FKEYS)-1	; save original function key
-savefkeys:	lda	KEYDEFS,x	; definitions
+.ifdef HAS_FKEYS
+		ldx	#2*FKEYS_NUM-1	; save original function key
+savefkeys:	lda	FKEYS_DEFS,x	; definitions
 		sta	fkeysave,x
 		dex
 		bpl	savefkeys
-		ldx	#FKEYS-1	; create the "identity mapping"
-fakefdefs:	lda	KEYCODES,x	; fetch control code from ROM
-		sta	KEYDEFS+FKEYS,x
+		ldx	#FKEYS_NUM-1	; create the "identity mapping"
+fakefdefs:	lda	FKEYS_CODES,x	; fetch control code from ROM
+		sta	FKEYS_DEFS+FKEYS_NUM,x
 		lda	#1		; use constant "1" for the length
-		sta	KEYDEFS,x
+		sta	FKEYS_DEFS,x
 		dex
 		bpl	fakefdefs
 .endif
@@ -146,10 +137,10 @@ waitkbidle:	cmp	LSTX		; to avoid detecting a still pressed
 		sta	STOPVEC
 		lda	origstop+1
 		sta	STOPVEC+1
-.if .defined(MACH_c16) .or .defined(MACH_c128)
-		ldx	#(2*FKEYS)-1	; restore original function key
+.ifdef HAS_FKEYS
+		ldx	#2*FKEYS_NUM-1	; restore original function key
 restfkeys:	lda	fkeysave,x	; mappings on c16 and c128
-		sta	KEYDEFS,x
+		sta	FKEYS_DEFS,x
 		dex
 		bpl	restfkeys
 .endif
