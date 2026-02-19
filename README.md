@@ -93,9 +93,9 @@ controlled with the keyboard as follows:
 
 ## Supported platforms
 
-The following build targets (add `PLATFORM=xxx` to your `make` command,
-default is `c16`) are offered, and you can download prebuilt `prg` files for
-these from a release page as well:
+The following build targets (use them as your `make` command target, default
+is `c16`) are offered, and you can download prebuilt `prg` files for these
+from a release page as well:
 
 * `vic20`: The unexpanded (5 kiB) VIC-20. RAM is so limited on this machine,
   this build restricts the number of directory entries to just 105.
@@ -119,7 +119,7 @@ On Windows, the required shell environment may be provided for example by the
 
 To build the `prg`, just type
 
-    make -j PLATFORM=xxx
+    make -j xxx
 
 where `xxx` is one of the supported platforms described above, defaulting to
 `c16` if not given at all. The `-j` flag is optional and tells `make` to run
@@ -128,7 +128,17 @@ normally not using GNU make, like e.g. the BSDs, you'll have to type `gmake`
 instead of `make`. You may also add `V=1` (for verbose) to see all the
 commands invoked literally, by default only the targets built are shown.
 
-To clean all files created by the build, type
+Example: If you want to do a *verbose* build targeting *c128*, type
+
+    make -j V=1 c128
+
+Additionally, there's a `world` target to build for all supported platforms at
+once:
+
+    make -j world
+
+To clean all files created by the build (intermediaries like object files, as
+well as `.prg` binaries), type
 
     make clean
 
