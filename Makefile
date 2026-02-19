@@ -33,6 +33,13 @@ _LD65_0=	@echo "  [LD65]   $@";
 _LD65_1=	#
 
 all:		$(TARGET).prg
+world:		$(PLATFORMS)
+
+define PRULE
+$1:
+	@$(MAKE) --no-print-directory PLATFORM=$1
+endef
+$(foreach p,$(PLATFORMS),$(eval $(call PRULE,$p)))
 
 clean:
 	rm -fr obj
@@ -52,4 +59,4 @@ obj/$(PLATFORM)/%.o:	src/%.s obj/$(PLATFORM)/%.d Makefile | obj/$(PLATFORM)
 obj/$(PLATFORM):
 	$(_V_$(V))mkdir -p $@
 
-.PHONY:		all clean
+.PHONY:		all world clean $(PLATFORMS)
