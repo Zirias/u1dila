@@ -106,3 +106,29 @@ these from a release page as well:
 * `c16`: Commodore 264 series (C16, C116, Plus/4)
 * `c128`: Commodore 128 (will be forced into 40 column mode for simplicity)
 
+## Building yourself
+
+To build `u1dila` yourself, you need
+
+* The `cc65` package (providing `ca65` and `ld65`)
+* GNU make
+* A POSIX shell environment providing `sh`, `echo`, `mv`, `rm` and `touch`
+
+On Windows, the required shell environment may be provided for example by the
+`WSL` (Windows Subsystem for Linux) or by `MSYS2`.
+
+To build the `prg`, just type
+
+    make -j PLATFORM=xxx
+
+where `xxx` is one of the supported platforms described above, defaulting to
+`c16` if not given at all. The `-j` flag is optional and tells `make` to run
+multiple jobs in parallel, which typically speeds up the build. On platforms
+normally not using GNU make, like e.g. the BSDs, you'll have to type `gmake`
+instead of `make`. You may also add `V=1` (for verbose) to see all the
+commands invoked literally, by default only the targets built are shown.
+
+To clean all files created by the build, type
+
+    make clean
+
