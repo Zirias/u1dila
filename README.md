@@ -98,7 +98,7 @@ default is `c16`) are offered, and you can download prebuilt `prg` files for
 these from a release page as well:
 
 * `vic20`: The unexpanded (5 kiB) VIC-20. RAM is so limited on this machine,
-  this build restricts the number of directory entries to just 104.
+  this build restricts the number of directory entries to just 105.
 * `vic20x`: VIC-20 with the low 3kiB memory extension (at `$400`).
 * `vic20e`: VIC-20 with one (or more) 8kiB memory extensions (starting at
   `$2000`).
