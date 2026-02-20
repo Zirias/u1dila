@@ -76,8 +76,11 @@ used. `u1dila` just looks there for all its communications.
 ## Usage
 
 Once started, the tool will load the current directory and display it for
-browsing, only showing entries of types `DIR`, `D64` and `PRG`. It can be
-controlled with the keyboard as follows:
+browsing, only showing entries of types `DIR`, `D64` and `PRG`. Note it
+displays the filenames *exactly* as received by the 1541-U, so any translation
+(like Unicode -> PETSCII) that might happen is done by the 1541-U firmware.
+
+`u1dila` can be controlled with the keyboard as follows:
 
 * `RUN/STOP`: exit the tool
 * `CRSR UP/DOWN`: select entries in the directory
@@ -90,6 +93,7 @@ controlled with the keyboard as follows:
 * `F1`: perform action on the selected entry, same as `RETURN` with one
   exception: When used on a `D64` image, automatically loading + running is
   skipped, so you can manually load whatever file you wanted from the image.
+  Particularly note that automatically running is **not** skipped for `PRG`.
 
 ## Supported platforms
 
